@@ -235,11 +235,24 @@ def call_gemini_api(api_key, title, desc, link):
         headers={"Content-Type": "application/json"},
         method="POST"
     )
-    with urllib.request.urlopen(req, timeout=30) as res:
-        response_body = res.read().decode("utf-8")
-        res_json = json.loads(response_body)
-        text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
-        return json.loads(text)
+    
+    import time
+    import urllib.error
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as res:
+                response_body = res.read().decode("utf-8")
+                res_json = json.loads(response_body)
+                text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                return json.loads(text)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < max_retries - 1:
+                sleep_time = (attempt + 1) * 3  # sleep 3s, then 6s
+                print(f"[!] Gemini API returned 429 (Rate Limit). Retrying in {sleep_time} seconds (Attempt {attempt+1}/{max_retries})...")
+                time.sleep(sleep_time)
+                continue
+            raise e
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
