@@ -1257,6 +1257,28 @@
                     statusBadge.className = 'status-badge connected';
                     statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Gemini API พร้อมใช้งาน</span>';
                 } else {
+                    // Try to restore from localStorage if the server reset
+                    const localKey = localStorage.getItem('gemini_api_key');
+                    if (localKey) {
+                        console.log("[*] Restoring Gemini API key from browser localStorage...");
+                        try {
+                            const restoreRes = await fetch('/api/save-key', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ api_key: localKey })
+                            });
+                            const restoreData = await restoreRes.json();
+                            if (restoreData.success) {
+                                hasGeminiKey = true;
+                                statusBadge.className = 'status-badge connected';
+                                statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Gemini API พร้อมใช้งาน</span>';
+                                return;
+                            }
+                        } catch (restoreErr) {
+                            console.error("Failed to restore API key in background:", restoreErr);
+                        }
+                    }
+
                     statusBadge.className = 'status-badge disconnected';
                     statusBadge.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <span>ไม่พบ Gemini API Key (คลิกตั้งค่า)</span>';
                     toast('กรุณาตั้งค่า Gemini API Key เพื่อเริ่มใช้งานฟังก์ชันเขียนโพสต์อัจฉริยะ', 'warning');
@@ -1770,7 +1792,8 @@
 
         // Settings modal actions
         function openSettings() {
-            document.getElementById('api-key-input').value = '';
+            const savedKey = localStorage.getItem('gemini_api_key') || '';
+            document.getElementById('api-key-input').value = savedKey;
             document.getElementById('settings-modal').classList.add('active');
         }
 
@@ -1794,6 +1817,7 @@
                 
                 const data = await response.json();
                 if (data.success) {
+                    localStorage.setItem('gemini_api_key', apiKey);
                     toast('บันทึก Gemini API Key สำเร็จแล้ว!', 'success');
                     closeSettings();
                     checkConfig(); // update badge UI

@@ -27,7 +27,7 @@ import hashlib
 
 # --- CONFIGURATION LOADER ---
 def load_env(env_file="config.env"):
-    """Loads environment variables from config.env if present."""
+    """Loads environment variables from config.env and os.environ."""
     config = {
         "SMTP_SERVER": "smtp.office365.com",
         "SMTP_PORT": "587",
@@ -38,6 +38,12 @@ def load_env(env_file="config.env"):
         "GEMINI_API_KEY": ""
     }
     
+    # Read from environment variables first (such as Render environment variables)
+    for key in config.keys():
+        val = os.environ.get(key)
+        if val is not None:
+            config[key] = val
+            
     script_dir = os.path.dirname(os.path.abspath(__file__))
     env_path = os.path.join(script_dir, env_file)
     

@@ -43,8 +43,15 @@ def save_saved_ideas(ideas):
     return False
 
 def load_config():
-    """Loads environment variables from config.env."""
+    """Loads environment variables from config.env and os.environ."""
     config = {}
+    # Read from environment variables first (such as Render environment variables)
+    keys_to_read = ["GEMINI_API_KEY", "SMTP_SERVER", "SMTP_PORT", "USE_TLS", "SENDER_EMAIL", "SENDER_PASSWORD", "RECIPIENT_EMAIL"]
+    for key in keys_to_read:
+        val = os.environ.get(key)
+        if val is not None:
+            config[key] = val
+
     env_path = os.path.join(DIRECTORY, "config.env")
     if os.path.exists(env_path):
         with open(env_path, "r", encoding="utf-8") as f:
