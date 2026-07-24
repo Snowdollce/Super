@@ -371,31 +371,40 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return
             
         elif self.path == "/api/generate":
-            article_id = req_data.get("article_id", "").strip()
-            if not article_id:
-                self.send_response(400)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "article_id is required"}).encode("utf-8"))
-                return
-                
-            # Load article details from json
-            news_path = os.path.join(DIRECTORY, "news_data.json")
-            article = None
-            if os.path.exists(news_path):
-                with open(news_path, "r", encoding="utf-8") as f:
-                    news_data = json.load(f)
-                    for item in news_data:
-                        if item["id"] == article_id:
-                            article = item
-                            break
-                            
-            if not article:
-                self.send_response(404)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "Article not found"}).encode("utf-8"))
-                return
+            title = req_data.get("title", "").strip()
+            desc = req_data.get("desc", "").strip()
+            link = req_data.get("link", "").strip()
+            
+            # If full article data is not sent, fallback to loading by article_id from news_data.json
+            if not title:
+                article_id = req_data.get("article_id", "").strip()
+                if not article_id:
+                    self.send_response(400)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "article_id or full article data (title) is required"}).encode("utf-8"))
+                    return
+                    
+                # Load article details from json
+                news_path = os.path.join(DIRECTORY, "news_data.json")
+                article = None
+                if os.path.exists(news_path):
+                    with open(news_path, "r", encoding="utf-8") as f:
+                        news_data = json.load(f)
+                        for item in news_data:
+                            if item["id"] == article_id:
+                                article = item
+                                break
+                                
+                if not article:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Article not found"}).encode("utf-8"))
+                    return
+                title = article.get("title", "")
+                desc = article.get("desc", "") or article.get("desc_summary", "")
+                link = article.get("link", "")
                 
             config = load_config()
             api_key = config.get("GEMINI_API_KEY", "").strip()
@@ -407,16 +416,12 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
                 
             try:
-                # Use description or summary
-                content_to_use = article.get("desc", "") or article.get("desc_summary", "")
-                if not content_to_use:
-                    content_to_use = article.get("title", "")
-                    
+                content_to_use = desc if desc else title
                 generated_result = call_gemini_api(
                     api_key=api_key,
-                    title=article["title"],
+                    title=title,
                     desc=content_to_use,
-                    link=article["link"]
+                    link=link
                 )
                 
                 self.send_response(200)

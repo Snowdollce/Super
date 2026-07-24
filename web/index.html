@@ -1605,7 +1605,12 @@
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ article_id: selectedArticle.id })
+                    body: JSON.stringify({ 
+                        article_id: selectedArticle.id,
+                        title: selectedArticle.title || selectedArticle.title_summary || '',
+                        desc: selectedArticle.desc || selectedArticle.desc_summary || '',
+                        link: selectedArticle.link || ''
+                    })
                 });
                 
                 const data = await response.json();
