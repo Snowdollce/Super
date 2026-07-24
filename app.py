@@ -25,6 +25,24 @@ WEB_DIR = os.path.join(DIRECTORY, "web")
 SAVED_IDEAS_FILE = os.path.join(DIRECTORY, "saved_ideas.json")
 
 def load_saved_ideas():
+    supabase = get_supabase_config()
+    if supabase:
+        url, key = supabase
+        req_url = f"{url}/rest/v1/saved_ideas?select=*&order=saved_at.desc"
+        req = urllib.request.Request(
+            req_url,
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as res:
+                return json.loads(res.read().decode("utf-8"))
+        except Exception as e:
+            print("Error loading from Supabase:", e)
+            
     if os.path.exists(SAVED_IDEAS_FILE):
         try:
             with open(SAVED_IDEAS_FILE, "r", encoding="utf-8") as f:
@@ -46,7 +64,7 @@ def load_config():
     """Loads environment variables from config.env and os.environ."""
     config = {}
     # Read from environment variables first (such as Render environment variables)
-    keys_to_read = ["GEMINI_API_KEY", "SMTP_SERVER", "SMTP_PORT", "USE_TLS", "SENDER_EMAIL", "SENDER_PASSWORD", "RECIPIENT_EMAIL"]
+    keys_to_read = ["GEMINI_API_KEY", "SMTP_SERVER", "SMTP_PORT", "USE_TLS", "SENDER_EMAIL", "SENDER_PASSWORD", "RECIPIENT_EMAIL", "SUPABASE_URL", "SUPABASE_KEY"]
     for key in keys_to_read:
         val = os.environ.get(key)
         if val is not None:
@@ -61,6 +79,84 @@ def load_config():
                     key, val = line.split("=", 1)
                     config[key.strip()] = val.strip()
     return config
+
+def get_supabase_config():
+    config = load_config()
+    url = config.get("SUPABASE_URL", "").strip()
+    key = config.get("SUPABASE_KEY", "").strip()
+    if url and key:
+        return url, key
+    return None
+
+def save_saved_ideas_supabase(idea):
+    supabase = get_supabase_config()
+    if not supabase:
+        return False
+    url, key = supabase
+    req_url = f"{url}/rest/v1/saved_ideas?on_conflict=id"
+    payload = json.dumps(idea).encode("utf-8")
+    req = urllib.request.Request(
+        req_url,
+        data=payload,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates"
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            return True
+    except Exception as e:
+        print("Error saving to Supabase:", e)
+        return False
+
+def update_saved_idea_status_supabase(idea_id, status):
+    supabase = get_supabase_config()
+    if not supabase:
+        return False
+    url, key = supabase
+    req_url = f"{url}/rest/v1/saved_ideas?id=eq.{idea_id}"
+    payload = json.dumps({"status": status}).encode("utf-8")
+    req = urllib.request.Request(
+        req_url,
+        data=payload,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
+        },
+        method="PATCH"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            return True
+    except Exception as e:
+        print("Error updating status in Supabase:", e)
+        return False
+
+def delete_saved_idea_supabase(idea_id):
+    supabase = get_supabase_config()
+    if not supabase:
+        return False
+    url, key = supabase
+    req_url = f"{url}/rest/v1/saved_ideas?id=eq.{idea_id}"
+    req = urllib.request.Request(
+        req_url,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}"
+        },
+        method="DELETE"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            return True
+    except Exception as e:
+        print("Error deleting from Supabase:", e)
+        return False
 
 def save_api_key_to_env(api_key):
     """Saves the Gemini API key to config.env."""
@@ -278,9 +374,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Content is required"}).encode("utf-8"))
                 return
                 
-            ideas = load_saved_ideas()
             idea_id = hashlib.md5(content.encode("utf-8")).hexdigest()[:10]
-            
             new_idea = {
                 "id": idea_id,
                 "news_id": req_data.get("news_id", ""),
@@ -294,47 +388,59 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             
-            ideas = [i for i in ideas if i["id"] != idea_id]
-            ideas.insert(0, new_idea)
-            save_saved_ideas(ideas)
+            success = False
+            if get_supabase_config():
+                success = save_saved_ideas_supabase(new_idea)
+            else:
+                ideas = load_saved_ideas()
+                ideas = [i for i in ideas if i["id"] != idea_id]
+                ideas.insert(0, new_idea)
+                success = save_saved_ideas(ideas)
             
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            self.wfile.write(json.dumps({"success": True, "idea_id": idea_id}).encode("utf-8"))
+            self.wfile.write(json.dumps({"success": success, "idea_id": idea_id}).encode("utf-8"))
             return
             
         elif self.path == "/api/update-idea-status":
             idea_id = req_data.get("idea_id", "").strip()
             status = req_data.get("status", "").strip()
             
-            ideas = load_saved_ideas()
-            updated = False
-            for idea in ideas:
-                if idea["id"] == idea_id:
-                    idea["status"] = status
-                    updated = True
-                    break
-                    
-            if updated:
-                save_saved_ideas(ideas)
+            success = False
+            if get_supabase_config():
+                success = update_saved_idea_status_supabase(idea_id, status)
+            else:
+                ideas = load_saved_ideas()
+                for idea in ideas:
+                    if idea["id"] == idea_id:
+                        idea["status"] = status
+                        success = True
+                        break
+                if success:
+                    save_saved_ideas(ideas)
                 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"success": updated}).encode("utf-8"))
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
             return
             
         elif self.path == "/api/delete-idea":
             idea_id = req_data.get("idea_id", "").strip()
-            ideas = load_saved_ideas()
-            filtered_ideas = [i for i in ideas if i["id"] != idea_id]
-            save_saved_ideas(filtered_ideas)
             
+            success = False
+            if get_supabase_config():
+                success = delete_saved_idea_supabase(idea_id)
+            else:
+                ideas = load_saved_ideas()
+                filtered_ideas = [i for i in ideas if i["id"] != idea_id]
+                success = save_saved_ideas(filtered_ideas)
+                
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
             return
             
         elif self.path == "/api/fetch":
