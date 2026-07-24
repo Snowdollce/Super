@@ -84,7 +84,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 18px 30px;
+            padding: 10px 30px;
             margin: 20px 30px 10px 30px;
             z-index: 10;
         }
@@ -92,15 +92,15 @@
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
 
         .logo-icon {
             background: #0066ff; /* LinkedIn blue square */
             color: var(--text-light);
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+            width: 68px;
+            height: 68px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -109,9 +109,10 @@
         }
 
         .logo-title h1 {
-            font-size: 20px;
+            font-size: 28px;
             font-weight: 800;
             color: #0066ff;
+            line-height: 1;
         }
 
         .logo-title p {
@@ -244,6 +245,61 @@
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: white;
+        }
+
+        /* Category Menu Shortcuts */
+        .category-menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .category-menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            color: white;
+            gap: 12px;
+        }
+
+        .category-menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.18);
+            border-color: var(--warning);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-menu-icon {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-menu-text {
+            font-size: 13.5px;
+            font-weight: 700;
+            line-height: 1.35;
+            flex: 1;
+        }
+
+        .category-menu-badge {
+            background-color: var(--warning);
+            color: #0f172a;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
         }
 
         .sidebar-header {
@@ -1009,12 +1065,9 @@
     <!-- Header Navigation -->
     <header class="glass-panel">
         <div class="logo-section">
-            <div class="logo-icon">
-                <i class="fa-solid fa-robot"></i>
-            </div>
+            <img src="Avatar_image.png" alt="Avatar" class="logo-icon" style="object-fit: cover;">
             <div class="logo-title">
-                <h1>AI News Copywriter</h1>
-                <p>ระบบสร้างโพสต์และสรุปข่าวสารอัจฉริยะ</p>
+                <h1>Super.</h1>
             </div>
         </div>
         
@@ -1045,22 +1098,12 @@
     <div class="app-container">
         
         <!-- Sidebar: News Items -->
-        <aside class="sidebar glass-panel">
-            <div class="sidebar-header">
-                <h3>รายการข่าวสารวันนี้</h3>
-                <div class="search-container">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="search-box" class="search-input" placeholder="ค้นหาข่าวสาร..." oninput="filterNews()">
-                </div>
-            </div>
-            
-            <div class="sidebar-content" id="news-list-container">
-                <!-- Skeletons showing before load -->
-                <div style="padding: 10px;">
-                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
-                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
-                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
-                </div>
+        <aside class="sidebar glass-panel" id="app-sidebar">
+            <div style="padding: 20px;">
+                <div class="skeleton-block" style="height: 35px; margin-bottom: 20px; border-radius: 8px;"></div>
+                <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
+                <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
+                <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
             </div>
         </aside>
         
@@ -1154,6 +1197,7 @@
         let selectedArticle = null;
         let hasGeminiKey = false;
         let generatedPosts = null;
+        let selectedCategory = null;
 
         // On document ready
         window.addEventListener('DOMContentLoaded', () => {
@@ -1231,7 +1275,6 @@
             try {
                 const response = await fetch('/api/news');
                 allNews = await response.json();
-                renderNewsList(allNews);
                 
                 // Read news_id from URL query string
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1239,15 +1282,18 @@
                 if (queryId && allNews.length > 0) {
                     const article = allNews.find(item => item.id === queryId);
                     if (article) {
+                        selectedCategory = article.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
                         selectArticle(article);
                     } else {
-                        toast('ไม่พบข่าวรหัสที่ระบุในรายการวันนี้', 'error');
+                        renderSidebar();
                     }
+                } else {
+                    renderSidebar();
                 }
             } catch (err) {
                 console.error("Error loading news feed: ", err);
-                document.getElementById('news-list-container').innerHTML = `
-                    <div style="text-align: center; color: var(--danger); padding: 20px; font-weight: bold;">
+                document.getElementById('app-sidebar').innerHTML = `
+                    <div style="text-align: center; color: var(--danger); padding: 30px; font-weight: bold;">
                         <i class="fa-solid fa-circle-exclamation" style="font-size: 24px; margin-bottom: 8px;"></i>
                         <p>โหลดรายการข่าวสารไม่สำเร็จ</p>
                     </div>
@@ -1255,71 +1301,165 @@
             }
         }
 
-        // Render lists grouped by category
-        function renderNewsList(newsItems) {
-            const container = document.getElementById('news-list-container');
-            if (newsItems.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: var(--text-muted); padding: 30px;">
-                        <i class="fa-solid fa-newspaper" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
-                        <p style="font-size: 13px;">ไม่มีประวัติการสรุปข่าว</p>
+        // Parse leading emoji and category name dynamically
+        function parseCategory(catName) {
+            if (!catName) return { icon: '📰', name: '' };
+            const chars = Array.from(catName);
+            const firstChar = chars[0];
+            const codePoint = firstChar.codePointAt(0);
+            
+            // Check if first character is in emoji/dingbat ranges
+            const isEmoji = (codePoint >= 0x1F300 && codePoint <= 0x1FAFF) || 
+                            (codePoint >= 0x2600 && codePoint <= 0x27BF);
+            
+            if (isEmoji) {
+                return {
+                    icon: firstChar,
+                    name: chars.slice(1).join('').trim()
+                };
+            }
+            return {
+                icon: '📰',
+                name: catName.trim()
+            };
+        }
+
+        // Render Sidebar dynamically
+        function renderSidebar() {
+            const sidebar = document.getElementById('app-sidebar');
+            if (allNews.length === 0) {
+                sidebar.innerHTML = `
+                    <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 50px 20px;">
+                        <i class="fa-solid fa-newspaper" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <p style="font-size: 14px; font-weight: bold;">ไม่มีประวัติการสรุปข่าว</p>
                         <p style="font-size: 11px; margin-top: 4px;">กรุณากดดึงข้อมูลข่าวสารล่าสุด</p>
                     </div>
                 `;
                 return;
             }
 
-            // Group by category
-            const grouped = {};
-            newsItems.forEach(item => {
-                const cat = item.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
-                if (!grouped[cat]) grouped[cat] = [];
-                grouped[cat].push(item);
-            });
+            if (selectedCategory === null) {
+                // Render Category Menu Mode
+                const grouped = {};
+                allNews.forEach(item => {
+                    const cat = item.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(item);
+                });
 
-            let html = '';
-            for (const [catName, items] of Object.entries(grouped)) {
-                html += `
-                    <div class="category-group">
-                        <div class="category-header">
-                            <span>${catName}</span>
-                            <span class="category-badge">${items.length}</span>
-                        </div>
+                let menuHtml = `
+                    <div class="sidebar-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 20px;">
+                        <h3 style="color: white; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-layer-group" style="color: var(--warning);"></i> วันนี้: เลือกหมวดหมู่ข่าวสาร
+                        </h3>
+                    </div>
+                    <div class="category-menu-list">
                 `;
-                
-                items.forEach(item => {
-                    const isActive = selectedArticle && selectedArticle.id === item.id ? 'active' : '';
-                    html += `
-                        <div class="news-card ${isActive}" onclick='selectArticleById("${item.id}")'>
-                            <h4>${escapeHtml(item.title_summary || item.title)}</h4>
-                            <p>${escapeHtml(item.desc_summary || item.desc || '')}</p>
-                            <div class="news-card-meta">
-                                <span class="news-card-date"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.pubdate)}</span>
+
+                const defaultCats = [
+                    '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป',
+                    '💻 การพัฒนาโมเดล & เทคโนโลยี AI',
+                    '🚀 การประยุกต์ใช้ในธุรกิจ & อุตสาหกรรม'
+                ];
+
+                const allCatNames = new Set([...defaultCats, ...Object.keys(grouped)]);
+
+                allCatNames.forEach(catName => {
+                    const items = grouped[catName] || [];
+                    const parsed = parseCategory(catName);
+                    menuHtml += `
+                        <div class="category-menu-item" onclick="selectCategory('${catName}')">
+                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                <span class="category-menu-icon">${parsed.icon}</span>
+                                <span class="category-menu-text">${escapeHtml(parsed.name)}</span>
                             </div>
+                            <span class="category-menu-badge">${items.length}</span>
                         </div>
                     `;
                 });
-                
-                html += `</div>`;
+
+                menuHtml += `</div>`;
+                sidebar.innerHTML = menuHtml;
+            } else {
+                // Render Scoped Category News List Mode
+                const parsedHeader = parseCategory(selectedCategory);
+                sidebar.innerHTML = `
+                    <div class="sidebar-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding: 15px 20px;">
+                        <a href="javascript:void(0)" onclick="selectCategory(null)" style="color: var(--warning); text-decoration: none; font-size: 12.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; transition: var(--transition);">
+                            <i class="fa-solid fa-arrow-left"></i> ย้อนกลับไปหมวดหมู่
+                        </a>
+                        <h3 style="color: white; font-size: 14.5px; font-weight: 800; line-height: 1.4; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">${parsedHeader.icon}</span> ${escapeHtml(parsedHeader.name)}
+                        </h3>
+                        <div class="search-container" style="margin-top: 12px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-box" class="search-input" placeholder="ค้นหาข่าวในหมวดนี้..." oninput="filterCategoryNews()" style="background-color: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25);">
+                        </div>
+                    </div>
+                    <div class="sidebar-content" id="news-list-container" style="flex: 1; overflow-y: auto; padding: 15px;">
+                        <!-- News cards belong to selectedCategory will render here -->
+                    </div>
+                `;
+                filterCategoryNews();
             }
-            container.innerHTML = html;
         }
 
-        // News filter search
-        function filterNews() {
-            const query = document.getElementById('search-box').value.toLowerCase();
-            if (!query) {
-                renderNewsList(allNews);
+        // Select active Category
+        function selectCategory(catName) {
+            selectedCategory = catName;
+            renderSidebar();
+        }
+
+        // Filter news cards inside active category
+        function filterCategoryNews() {
+            const query = document.getElementById('search-box') ? document.getElementById('search-box').value.toLowerCase() : '';
+            const categoryNews = allNews.filter(item => {
+                const cat = item.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
+                return cat === selectedCategory;
+            });
+
+            let filtered = categoryNews;
+            if (query) {
+                filtered = categoryNews.filter(item => 
+                    (item.title && item.title.toLowerCase().includes(query)) ||
+                    (item.title_summary && item.title_summary.toLowerCase().includes(query)) ||
+                    (item.desc_summary && item.desc_summary.toLowerCase().includes(query)) ||
+                    (item.desc && item.desc.toLowerCase().includes(query))
+                );
+            }
+
+            renderCategoryNewsList(filtered);
+        }
+
+        // Render filtered category news cards list
+        function renderCategoryNewsList(newsItems) {
+            const container = document.getElementById('news-list-container');
+            if (!container) return;
+
+            if (newsItems.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 50px 20px;">
+                        <i class="fa-solid fa-newspaper" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">ไม่พบข่าวสารในคำค้นหานี้</p>
+                    </div>
+                `;
                 return;
             }
-            
-            const filtered = allNews.filter(item => 
-                (item.title && item.title.toLowerCase().includes(query)) ||
-                (item.title_summary && item.title_summary.toLowerCase().includes(query)) ||
-                (item.desc_summary && item.desc_summary.toLowerCase().includes(query)) ||
-                (item.desc && item.desc.toLowerCase().includes(query))
-            );
-            renderNewsList(filtered);
+
+            let html = '';
+            newsItems.forEach(item => {
+                const isActive = selectedArticle && selectedArticle.id === item.id ? 'active' : '';
+                html += `
+                    <div class="news-card ${isActive}" onclick='selectArticleById("${item.id}")'>
+                        <h4>${escapeHtml(item.title_summary || item.title)}</h4>
+                        <p>${escapeHtml(item.desc_summary || item.desc || '')}</p>
+                        <div class="news-card-meta">
+                            <span class="news-card-date"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.pubdate)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
         }
 
         // Selection functions
@@ -1332,8 +1472,8 @@
             selectedArticle = article;
             generatedPosts = null; // reset previously generated data
             
-            // Re-render news list to update active state CSS
-            renderNewsList(allNews);
+            // Re-render sidebar to highlight active news card CSS
+            renderSidebar();
             
             // Render workspace layout
             renderWorkspace();
@@ -1604,7 +1744,7 @@
                 if (data.success) {
                     allNews = data.news || [];
                     selectedArticle = null;
-                    renderNewsList(allNews);
+                    renderSidebar();
                     
                     // Reset main content display to empty
                     document.getElementById('content-area').innerHTML = `

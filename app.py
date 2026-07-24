@@ -339,11 +339,10 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 # Running the scraper using python executable
                 script_path = os.path.join(DIRECTORY, "ai_news_fetcher.py")
-                cmd = [sys.executable, script_path]
+                cmd = [sys.executable, script_path, "--dry-run"]
                 print(f"[*] Triggering fetch command: {' '.join(cmd)}")
                 
-                # Execute subprocess and wait
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
                 
                 # Reload news data
                 news_path = os.path.join(DIRECTORY, "news_data.json")
