@@ -1,0 +1,28 @@
+# Environment configuration
+config.env
+
+# Local database / temporary data
+news_data.json
+saved_ideas.json
+latest_summary.html
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Editor / IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store

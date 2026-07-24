@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI News Copywriter - ระบบดึงข่าวและสร้างโพสต์อัตโนมัติ</title>
+    <!-- Google Fonts: Inter & Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Premium Vibrant Blue & Yellow theme based on User Mockup */
+            --bg-gradient: linear-gradient(135deg, #005cff 0%, #007cff 100%);
+            --panel-bg: #ffffff;
+            --panel-border: rgba(0, 102, 255, 0.1);
+            --card-shadow: 0 12px 35px -10px rgba(0, 40, 120, 0.15);
+            --glow-shadow: 0 0 25px rgba(0, 102, 255, 0.25);
+            
+            --primary: #0055ff;
+            --primary-gradient: linear-gradient(135deg, #0052e0 0%, #007cff 100%);
+            --secondary: #475569;
+            --accent: #0066ff;
+            --accent-gradient: linear-gradient(135deg, #0066ff 0%, #0050df 100%);
+            --success: #10b981;
+            --warning: #fcc419; /* Sunny yellow from mockup */
+            --danger: #ef4444;
+            
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #ffffff;
+            
+            --font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 102, 255, 0.25);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 102, 255, 0.45);
+        }
+
+        /* Glassmorphism utility class */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Header Navigation */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 30px;
+            margin: 20px 30px 10px 30px;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            background: #0066ff; /* LinkedIn blue square */
+            color: var(--text-light);
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.25);
+        }
+
+        .logo-title h1 {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0066ff;
+        }
+
+        .logo-title p {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .status-badge.connected {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .status-badge.disconnected {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: var(--text-light);
+            box-shadow: 0 4px 15px rgba(15, 76, 129, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(15, 76, 129, 0.3), var(--glow-shadow);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd300 0%, #fcc419 100%);
+            color: #0f172a;
+            box-shadow: 0 4px 15px rgba(252, 196, 25, 0.25);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #ffe033 0%, #ffa600 100%);
+            box-shadow: 0 6px 20px rgba(252, 196, 25, 0.35);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: var(--secondary);
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 10px;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            color: var(--primary);
+            box-shadow: var(--card-shadow);
+        }
+
+        .btn-icon:hover {
+            background-color: #f1f5f9;
+            transform: scale(1.05);
+            color: var(--accent);
+        }
+
+        /* Layout Container */
+        .app-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+            padding: 10px 30px 30px 30px;
+            flex: 1;
+            height: calc(100vh - 120px);
+            min-height: 500px;
+        }
+
+        /* Sidebar: News Feed */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #0a66c2; /* Dark blue sidebar from mockup */
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h3 {
+            color: white;
+        }
+
+        .search-container {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 14px 12px 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 14px;
+            font-family: var(--font-family);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input:focus {
+            border-color: var(--warning);
+            box-shadow: 0 0 0 3px rgba(252, 196, 25, 0.2);
+            background-color: white;
+            color: var(--text-main);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .category-group {
+            margin-bottom: 20px;
+        }
+
+        .category-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--warning); /* Bright yellow matching the Mario stars! */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            padding-left: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .category-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .news-card {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .news-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: transparent;
+            transition: var(--transition);
+        }
+
+        .news-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.04);
+            border-color: #cbd5e1;
+        }
+
+        .news-card.active {
+            border-color: var(--warning);
+            background-color: #fefbeb; /* Light yellow background */
+            box-shadow: 0 4px 15px rgba(252, 196, 25, 0.2);
+        }
+
+        .news-card.active::before {
+            background: var(--warning);
+        }
+        
+        .news-card.active h4 {
+            color: #0f172a;
+        }
+        
+        .news-card.active p, .news-card.active .news-card-meta {
+            color: #4b5563;
+        }
+
+        .news-card h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .news-card p {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .news-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .news-card-date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Main Display Area */
+        .main-display {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-illustration {
+            font-size: 64px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);
+            border: 4px solid white;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 350px;
+            line-height: 1.5;
+        }
+
+        /* Workspace Grid (When news item selected) */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .workspace-header {
+            padding: 24px 30px;
+            background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%); /* Mario profile banner sky blue gradient */
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            border-radius: 16px 16px 0 0;
+            border-bottom: none;
+        }
+
+        .workspace-header h3 {
+            color: white !important;
+        }
+
+        .workspace-header p {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        .article-title-section {
+            flex: 1;
+        }
+
+        .category-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            background-color: var(--warning); /* Bright yellow star tag from mockup */
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .workspace-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.4;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .article-actions-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .article-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .article-link:hover {
+            text-decoration: underline;
+        }
+
+        .workspace-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px 30px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+        }
+
+        /* Left Side of Workspace: Facebook Posts */
+        .posts-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pane-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 15px;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: var(--transition);
+            font-family: var(--font-family);
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* Facebook Post Mockup Card */
+        .fb-post-mockup {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .fb-post-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .fb-profile-img {
+            background: var(--primary-gradient);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .fb-profile-info h5 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #050505;
+        }
+
+        .fb-profile-info p {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .fb-post-body {
+            font-size: 14.5px;
+            line-height: 1.6;
+            color: #050505;
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding: 4px 0;
+            border-radius: 6px;
+        }
+
+        .fb-post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .post-angle-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.08);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .btn-copy {
+            background-color: var(--accent);
+            color: white;
+            font-size: 12px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .btn-copy:hover {
+            background-color: #2563eb;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Right Side of Workspace: Image Prompt */
+        .image-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .image-prompt-card {
+            background-color: #ffd53d; /* Sunny yellow matching the biography block */
+            border: 1px solid #fcc419;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(252, 196, 25, 0.15);
+            color: #0f172a;
+        }
+
+        .prompt-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding-bottom: 10px;
+        }
+
+        .prompt-text-container {
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.65); /* Glass overlay matching card layout */
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .prompt-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #0f172a;
+            font-weight: 800;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .prompt-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Image Mockup Generator Preview */
+        .image-mockup {
+            border-radius: 16px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%); /* Matching profile sky blue gradient */
+            aspect-ratio: 16/9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: none;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+        }
+
+        .image-mockup-icon {
+            font-size: 36px;
+            color: white;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .image-mockup h6 {
+            font-size: 13px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .image-mockup p {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 200px;
+            line-height: 1.4;
+        }
+
+        /* Generating Loading Panel */
+        .loading-pane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 20px;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(15, 76, 129, 0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Skeleton Loading Animation */
+        .skeleton-block {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: loading-skeleton 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes loading-skeleton {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Modal Settings styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            width: 500px;
+            padding: 30px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+            font-family: var(--font-family);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: white;
+            color: var(--text-main);
+            border-left: 4px solid var(--accent);
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            transform: translateX(120%);
+            animation: slideIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 250px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning);
+        }
+
+        @keyframes slideIn {
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(10px); }
+        }
+
+        .toast-icon {
+            font-size: 16px;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.warning .toast-icon { color: var(--warning); }
+
+        /* Sync Loading Overlay */
+        .sync-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .sync-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .sync-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        .sync-content h3 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .sync-content p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="glass-panel">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <div class="logo-title">
+                <h1>AI News Copywriter</h1>
+                <p>ระบบสร้างโพสต์และสรุปข่าวสารอัจฉริยะ</p>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <!-- Connection Status -->
+            <div id="api-status" class="status-badge disconnected" onclick="openSettings()">
+                <i class="fa-solid fa-circle-exclamation"></i> <span>ไม่พบ Gemini API Key</span>
+            </div>
+            
+            <!-- Sync / Fetch Trigger Button -->
+            <button class="btn btn-warning" onclick="triggerSyncNews()">
+                <i class="fa-solid fa-paper-plane"></i> ดึงข่าวล่าสุด & ส่งอีเมล
+            </button>
+            
+            <!-- Idea Library Button -->
+            <button class="btn btn-secondary" onclick="openLibrary()" style="background-color: white; border: 1px solid #e2e8f0; color: var(--primary);">
+                <i class="fa-solid fa-bookmark"></i> คลังโพสต์ <span id="library-badge-count" style="margin-left: 5px; background: var(--accent); color: white; padding: 2px 6px; border-radius: 8px; font-size: 11px;">0</span>
+            </button>
+            
+            <!-- Settings Gear Button -->
+            <button class="btn btn-icon" onclick="openSettings()" title="ตั้งค่าระบบ">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="app-container">
+        
+        <!-- Sidebar: News Items -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <h3>รายการข่าวสารวันนี้</h3>
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-box" class="search-input" placeholder="ค้นหาข่าวสาร..." oninput="filterNews()">
+                </div>
+            </div>
+            
+            <div class="sidebar-content" id="news-list-container">
+                <!-- Skeletons showing before load -->
+                <div style="padding: 10px;">
+                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
+                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
+                    <div class="skeleton-block" style="height: 60px; margin-bottom: 12px; border-radius: 8px;"></div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Display Panel -->
+        <main class="main-display glass-panel">
+            <div id="content-area" style="height: 100%;">
+                <!-- Default empty state -->
+                <div class="empty-state">
+                    <div class="empty-illustration">
+                        <i class="fa-solid fa-copy"></i>
+                    </div>
+                    <h3>ยินดีต้อนรับสู่ AI News Copywriter</h3>
+                    <p>กรุณาเลือกหัวข้อข่าวสารทางแผงด้านซ้ายเพื่อเปิดดูข้อมูล หรือคลิกปุ่มในอีเมลระบบเพื่อเริ่มเจนไอเดียโพสต์และ Prompt ภาพประกอบได้ทันที</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> ตั้งค่าคอนฟิกเกอเรชัน</h3>
+                <button class="modal-close" onclick="closeSettings()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label" for="api-key-input">Gemini API Key</label>
+                <input type="password" id="api-key-input" class="form-input" placeholder="ป้อนคีย์ AI Studio (AIzaSy...)">
+                <span style="font-size: 11px; color: var(--text-muted);">คุณสามารถขอ Gemini API Key ได้ฟรีผ่านเว็บพอร์ทัล Google AI Studio</span>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">ข้อมูลการส่งอีเมลปลายทาง</label>
+                <input type="text" id="email-recipient-info" class="form-input" readonly disabled style="background-color: #f1f5f9; cursor: not-allowed;">
+                <span style="font-size: 11px; color: var(--text-muted);">* คุณสามารถแก้ไขอีเมลผู้ส่ง/ผู้รับได้ในไฟล์ config.env ภายในเครื่องคอมพิวเตอร์ของคุณ</span>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettings()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">บันทึกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Idea Library Modal Overlay -->
+    <div class="modal-overlay" id="library-modal">
+        <div class="modal glass-panel" style="width: 85%; max-width: 950px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; padding: 25px;">
+            <div class="modal-header" style="margin-bottom: 10px;">
+                <h3><i class="fa-solid fa-book-bookmark" style="color: var(--primary); margin-right: 8px;"></i> คลังไอเดียโพสต์และข่าวสาร</h3>
+                <button class="modal-close" onclick="closeLibrary()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Filters & Stats row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองสถานะ:</span>
+                    <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="renderLibraryItems()">
+                        <option value="ALL">ทั้งหมด</option>
+                        <option value="Waiting List">⏳ Waiting List (รอคิวโพสต์)</option>
+                        <option value="Used">✅ Used (โพสต์ไปแล้ว)</option>
+                        <option value="Interested">⭐ Interested (น่าสนใจ/ร่างไว)</option>
+                        <option value="Later">📁 Later (ไว้โพสต์ทีหลัง)</option>
+                    </select>
+                </div>
+                <span id="library-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
+            </div>
+            
+            <!-- Library content list (scrollable) -->
+            <div id="library-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Loaded items will render here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Synchronization Overlay -->
+    <div class="sync-overlay" id="sync-overlay">
+        <div class="sync-content glass-panel" style="padding: 40px; border-radius: 20px;">
+            <div class="spinner" style="margin-bottom: 20px;"></div>
+            <h3>กำลังประมวลผลดึงข่าวสาร AI...</h3>
+            <p>ระบบกำลังดำเนินการดาวน์โหลดข่าวล่าสุด สรุปเนื้อหาผ่านระบบ AI และส่งอีเมล digest ไปยังผู้ใช้ของคุณ โปรดรอสักครู่...</p>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Frontend logic Javascript -->
+    <script>
+        let allNews = [];
+        let selectedArticle = null;
+        let hasGeminiKey = false;
+        let generatedPosts = null;
+
+        // On document ready
+        window.addEventListener('DOMContentLoaded', () => {
+            checkConfig();
+            loadNewsList();
+        });
+
+        // Toast notifications
+        function toast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const element = document.createElement('div');
+            element.className = `toast ${type}`;
+            
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-times-circle';
+            if (type === 'warning') icon = 'fa-exclamation-circle';
+            
+            element.innerHTML = `
+                <i class="fa-solid ${icon} toast-icon"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(element);
+            
+            // Remove after 4s
+            setTimeout(() => {
+                element.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => {
+                    element.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        let savedLibraryIdeas = [];
+
+        async function updateLibraryBadge() {
+            try {
+                const response = await fetch('/api/saved-ideas');
+                const data = await response.json();
+                savedLibraryIdeas = data;
+                document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
+            } catch (err) {
+                console.error("Error updating library badge:", err);
+            }
+        }
+
+        // Check settings and status
+        async function checkConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                const statusBadge = document.getElementById('api-status');
+                hasGeminiKey = data.has_gemini_key;
+                
+                if (hasGeminiKey) {
+                    statusBadge.className = 'status-badge connected';
+                    statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Gemini API พร้อมใช้งาน</span>';
+                } else {
+                    statusBadge.className = 'status-badge disconnected';
+                    statusBadge.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <span>ไม่พบ Gemini API Key (คลิกตั้งค่า)</span>';
+                    toast('กรุณาตั้งค่า Gemini API Key เพื่อเริ่มใช้งานฟังก์ชันเขียนโพสต์อัจฉริยะ', 'warning');
+                }
+                
+                document.getElementById('email-recipient-info').value = data.recipient_email || 'ไม่ได้ระบุในระบบ';
+                
+                updateLibraryBadge();
+            } catch (err) {
+                console.error("Error checking configuration: ", err);
+            }
+        }
+
+        // Fetch news list from API
+        async function loadNewsList() {
+            try {
+                const response = await fetch('/api/news');
+                allNews = await response.json();
+                renderNewsList(allNews);
+                
+                // Read news_id from URL query string
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryId = urlParams.get('news_id');
+                if (queryId && allNews.length > 0) {
+                    const article = allNews.find(item => item.id === queryId);
+                    if (article) {
+                        selectArticle(article);
+                    } else {
+                        toast('ไม่พบข่าวรหัสที่ระบุในรายการวันนี้', 'error');
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading news feed: ", err);
+                document.getElementById('news-list-container').innerHTML = `
+                    <div style="text-align: center; color: var(--danger); padding: 20px; font-weight: bold;">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <p>โหลดรายการข่าวสารไม่สำเร็จ</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render lists grouped by category
+        function renderNewsList(newsItems) {
+            const container = document.getElementById('news-list-container');
+            if (newsItems.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        <i class="fa-solid fa-newspaper" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px;">ไม่มีประวัติการสรุปข่าว</p>
+                        <p style="font-size: 11px; margin-top: 4px;">กรุณากดดึงข้อมูลข่าวสารล่าสุด</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by category
+            const grouped = {};
+            newsItems.forEach(item => {
+                const cat = item.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(item);
+            });
+
+            let html = '';
+            for (const [catName, items] of Object.entries(grouped)) {
+                html += `
+                    <div class="category-group">
+                        <div class="category-header">
+                            <span>${catName}</span>
+                            <span class="category-badge">${items.length}</span>
+                        </div>
+                `;
+                
+                items.forEach(item => {
+                    const isActive = selectedArticle && selectedArticle.id === item.id ? 'active' : '';
+                    html += `
+                        <div class="news-card ${isActive}" onclick='selectArticleById("${item.id}")'>
+                            <h4>${escapeHtml(item.title_summary || item.title)}</h4>
+                            <p>${escapeHtml(item.desc_summary || item.desc || '')}</p>
+                            <div class="news-card-meta">
+                                <span class="news-card-date"><i class="fa-regular fa-clock"></i> ${formatDateTime(item.pubdate)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        // News filter search
+        function filterNews() {
+            const query = document.getElementById('search-box').value.toLowerCase();
+            if (!query) {
+                renderNewsList(allNews);
+                return;
+            }
+            
+            const filtered = allNews.filter(item => 
+                (item.title && item.title.toLowerCase().includes(query)) ||
+                (item.title_summary && item.title_summary.toLowerCase().includes(query)) ||
+                (item.desc_summary && item.desc_summary.toLowerCase().includes(query)) ||
+                (item.desc && item.desc.toLowerCase().includes(query))
+            );
+            renderNewsList(filtered);
+        }
+
+        // Selection functions
+        function selectArticleById(id) {
+            const article = allNews.find(item => item.id === id);
+            if (article) selectArticle(article);
+        }
+
+        function selectArticle(article) {
+            selectedArticle = article;
+            generatedPosts = null; // reset previously generated data
+            
+            // Re-render news list to update active state CSS
+            renderNewsList(allNews);
+            
+            // Render workspace layout
+            renderWorkspace();
+        }
+
+        // Render Workspace View
+        function renderWorkspace() {
+            const container = document.getElementById('content-area');
+            if (!selectedArticle) return;
+
+            container.innerHTML = `
+                <div class="workspace">
+                    <div class="workspace-header">
+                        <div class="article-title-section">
+                            <span class="category-tag">${escapeHtml(selectedArticle.category || 'ข่าวสาร AI')}</span>
+                            <h2>${escapeHtml(selectedArticle.title_summary || selectedArticle.title)}</h2>
+                            <div class="article-actions-row">
+                                <span><i class="fa-regular fa-clock"></i> วันที่: ${formatDateTime(selectedArticle.pubdate)}</span>
+                                <span>•</span>
+                                <a href="${selectedArticle.link}" target="_blank" class="article-link">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> อ่านข่าวต้นฉบับ
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" id="btn-generate-ai" onclick="generateFbContent()" style="flex-shrink: 0; padding: 12px 20px;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> สั่งปัญญาประดิษฐ์คิดโพสต์
+                        </button>
+                    </div>
+                    
+                    <div class="workspace-content" id="workspace-output-area">
+                        <!-- Left pane: FB Post placeholder -->
+                        <div class="posts-pane">
+                            <div class="pane-title"><i class="fa-brands fa-facebook" style="color: #1877f2; font-size: 20px;"></i> ไอเดียเขียนโพสต์ Facebook</div>
+                            
+                            <div class="fb-post-mockup" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 30px; text-align: center; border-style: dashed; background-color: rgba(255,255,255,0.4);">
+                                <i class="fa-solid fa-quote-left" style="font-size: 32px; color: #cbd5e1; margin-bottom: 12px;"></i>
+                                <p style="color: var(--text-muted); font-size: 13.5px; max-width: 280px; margin-bottom: 15px;">ยังไม่มีโพสต์ที่สร้างขึ้นสำหรับบทความนี้</p>
+                                <button class="btn btn-secondary" onclick="generateFbContent()"><i class="fa-solid fa-wand-magic-sparkles"></i> เริ่มประมวลผลคำสั่งโพสต์</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Right pane: Image Prompt placeholder -->
+                        <div class="image-pane">
+                            <div class="pane-title"><i class="fa-solid fa-image" style="color: #10b981; font-size: 18px;"></i> Prompt วาดรูปประกอบ</div>
+                            
+                            <div class="image-prompt-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; text-align: center; border-style: dashed; background-color: rgba(255,255,255,0.4);">
+                                <i class="fa-regular fa-image" style="font-size: 32px; color: #cbd5e1; margin-bottom: 12px;"></i>
+                                <p style="color: var(--text-muted); font-size: 13px; max-width: 250px;">พร้อมดึงไอเดีย Prompt ภาษาอังกฤษเพื่อนำไปเจนรูปใน Midjourney/DALL-E ได้ทันที</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Call API to generate content with Gemini
+        async function generateFbContent() {
+            if (!hasGeminiKey) {
+                toast('กรุณาใส่ Gemini API Key ในการตั้งค่าก่อนเริ่มใช้เขียนโพสต์', 'error');
+                openSettings();
+                return;
+            }
+            
+            const outputArea = document.getElementById('workspace-output-area');
+            const genBtn = document.getElementById('btn-generate-ai');
+            
+            // Set loading state in UI
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังวิเคราะห์ข่าวและคิดโพสต์...';
+            
+            outputArea.innerHTML = `
+                <div class="posts-pane">
+                    <div class="pane-title"><i class="fa-brands fa-facebook" style="color: #1877f2; font-size: 20px;"></i> ไอเดียเขียนโพสต์ Facebook</div>
+                    <div class="fb-post-mockup">
+                        <div class="fb-post-header">
+                            <div class="fb-profile-img"><i class="fa-solid fa-robot"></i></div>
+                            <div class="fb-profile-info">
+                                <div class="skeleton-block" style="height: 14px; width: 120px; margin-bottom: 6px;"></div>
+                                <div class="skeleton-block" style="height: 10px; width: 60px;"></div>
+                            </div>
+                        </div>
+                        <div class="fb-post-body">
+                            <div class="skeleton-block" style="height: 15px; width: 90%; margin-bottom: 10px;"></div>
+                            <div class="skeleton-block" style="height: 15px; width: 100%; margin-bottom: 10px;"></div>
+                            <div class="skeleton-block" style="height: 15px; width: 85%; margin-bottom: 10px;"></div>
+                            <div class="skeleton-block" style="height: 15px; width: 95%; margin-bottom: 10px;"></div>
+                            <div class="skeleton-block" style="height: 15px; width: 40%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="image-pane">
+                    <div class="pane-title"><i class="fa-solid fa-image" style="color: #10b981; font-size: 18px;"></i> Prompt วาดรูปประกอบ</div>
+                    <div class="image-prompt-card">
+                        <div class="prompt-title">
+                            <div class="skeleton-block" style="height: 14px; width: 150px;"></div>
+                        </div>
+                        <div class="prompt-text-container">
+                            <div class="skeleton-block" style="height: 40px; width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-block" style="height: 150px; border-radius: 12px; width: 100%;"></div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ article_id: selectedArticle.id })
+                });
+                
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                generatedPosts = data;
+                renderGeneratedOutput();
+                toast('ปัญญาประดิษฐ์สร้างไอเดียโพสต์และ Prompt รูปภาพเรียบร้อยแล้ว!', 'success');
+            } catch (err) {
+                console.error("Error generating post content: ", err);
+                toast(`ระบบทำงานขัดข้อง: ${err.message}`, 'error');
+                renderWorkspace(); // revert back to default view
+            } finally {
+                genBtn.disabled = false;
+                genBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> สั่งปัญญาประดิษฐ์คิดโพสต์';
+            }
+        }
+
+        // Render output returned from Gemini
+        function renderGeneratedOutput() {
+            const outputArea = document.getElementById('workspace-output-area');
+            if (!generatedPosts) return;
+
+            const ideas = generatedPosts.ideas || [];
+            const imagePrompt = generatedPosts.image_prompt || '';
+
+            // Generate HTML for Facebook post tabs
+            let tabsHtml = '<div class="tab-container">';
+            ideas.forEach((idea, idx) => {
+                const activeClass = idx === 0 ? 'active' : '';
+                tabsHtml += `
+                    <button class="tab-btn ${activeClass}" onclick="switchTab(${idx})">
+                        ไอเดียที่ ${idx + 1}
+                    </button>
+                `;
+            });
+            tabsHtml += '</div>';
+
+            // Generate content elements for ideas
+            let cardsHtml = '';
+            ideas.forEach((idea, idx) => {
+                const displayStyle = idx === 0 ? 'block' : 'none';
+                cardsHtml += `
+                    <div class="fb-post-tab-content" id="fb-tab-${idx}" style="display: ${displayStyle};">
+                        <div class="fb-post-mockup">
+                            <div class="fb-post-header">
+                                <div class="fb-profile-img"><i class="fa-solid fa-robot"></i></div>
+                                <div class="fb-profile-info">
+                                    <h5>AI News Creator FTPI</h5>
+                                    <p>เมื่อครู่ที่ผ่านมา • <i class="fa-solid fa-earth-americas"></i></p>
+                                </div>
+                            </div>
+                            <div style="font-size: 11px; color: var(--accent); margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 4px; background: rgba(59, 130, 246, 0.05); padding: 6px 12px; border-radius: 6px; border: 1px dashed rgba(59, 130, 246, 0.3);">
+                                <i class="fa-solid fa-pen-to-square"></i> ✍️ คุณสามารถคลิกพิมพ์แก้ไข หรือคัดลอกข้อความจากไอเดียอื่นมาผสมกันในกล่องนี้ได้เลยค่ะ
+                            </div>
+                            <div class="fb-post-body" id="post-body-text-${idx}" contenteditable="true" style="outline: none; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; transition: var(--transition); background-color: #f8fafc;" onfocus="this.style.borderColor='var(--accent)'; this.style.backgroundColor='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.05)';" onblur="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#f8fafc'; this.style.boxShadow='none';">${escapeHtml(idea.content)}</div>
+                            <div class="fb-post-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <span class="post-angle-tag"><i class="fa-solid fa-circle-nodes"></i> สไตล์: ${escapeHtml(idea.angle || 'ทั่วไป')}</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-secondary" onclick="savePostIdea(${idx})" id="save-idea-btn-${idx}" style="padding: 8px 14px; font-size: 12px; background-color: white; border: 1px solid #cbd5e1;">
+                                        <i class="fa-regular fa-bookmark"></i> เก็บไอเดีย
+                                    </button>
+                                    <button class="btn btn-primary btn-copy" onclick="copyPostText(${idx})">
+                                        <i class="fa-solid fa-copy"></i> คัดลอกเนื้อหา
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Write outputs to UI
+            outputArea.innerHTML = `
+                <div class="posts-pane">
+                    <div class="pane-title"><i class="fa-brands fa-facebook" style="color: #1877f2; font-size: 20px;"></i> ไอเดียเขียนโพสต์ Facebook</div>
+                    ${tabsHtml}
+                    ${cardsHtml}
+                </div>
+                
+                <div class="image-pane">
+                    <div class="pane-title"><i class="fa-solid fa-image" style="color: #10b981; font-size: 18px;"></i> Prompt วาดรูปประกอบ</div>
+                    <div class="image-prompt-card">
+                        <div class="prompt-title"><i class="fa-solid fa-code"></i> AI Image Prompt (English)</div>
+                        <div class="prompt-text-container">
+                            <div class="prompt-text" id="image-prompt-text">${escapeHtml(imagePrompt)}</div>
+                        </div>
+                        <div class="prompt-actions">
+                            <button class="btn btn-primary btn-copy" onclick="copyImagePrompt()">
+                                <i class="fa-solid fa-copy"></i> คัดลอก Prompt
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="image-mockup">
+                        <div class="image-mockup-icon"><i class="fa-regular fa-lightbulb"></i></div>
+                        <h6>จำลองแนวคิดรูปภาพ</h6>
+                        <p style="font-size: 11px; margin-bottom: 0;">ภาพประกอบที่เหมาะสมสำหรับข่าวชิ้นนี้ควรสะท้อนแนวคิดการพัฒนาเทคโนโลยี AI หรือการใช้งานจริง คัดลอก Prompt ด้านบนไปใส่ใน Midjourney หรือ DALL-E เพื่อวาดรูปประกอบพรีเมียมได้ทันที</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Tab switcher logic
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.fb-post-tab-content');
+            
+            tabs.forEach((tab, idx) => {
+                if (idx === index) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            contents.forEach((content, idx) => {
+                if (idx === index) content.style.display = 'block';
+                else content.style.display = 'none';
+            });
+        }
+
+        // Copy actions
+        function copyPostText(index) {
+            const textElement = document.getElementById(`post-body-text-${index}`);
+            if (!textElement) return;
+
+            navigator.clipboard.writeText(textElement.innerText)
+                .then(() => {
+                    toast(`คัดลอกโพสต์ไอเดียที่ ${index + 1} ไปยังคลิปบอร์ดแล้ว!`, 'success');
+                })
+                .catch(err => {
+                    toast('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง', 'error');
+                });
+        }
+
+        function copyImagePrompt() {
+            const textElement = document.getElementById('image-prompt-text');
+            if (!textElement) return;
+
+            navigator.clipboard.writeText(textElement.innerText)
+                .then(() => {
+                    toast('คัดลอก Image Prompt สำเร็จแล้ว!', 'success');
+                })
+                .catch(err => {
+                    toast('คัดลอกไม่สำเร็จ กรุณาลองอีกครั้ง', 'error');
+                });
+        }
+
+        // Manual fetch & email triggering
+        async function triggerSyncNews() {
+            const overlay = document.getElementById('sync-overlay');
+            overlay.classList.add('active');
+
+            try {
+                const response = await fetch('/api/fetch', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    allNews = data.news || [];
+                    selectedArticle = null;
+                    renderNewsList(allNews);
+                    
+                    // Reset main content display to empty
+                    document.getElementById('content-area').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-illustration">
+                                <i class="fa-solid fa-copy"></i>
+                            </div>
+                            <h3>ดึงข้อมูลสำเร็จและส่งอีเมลแล้ว!</h3>
+                            <p>ข่าวสารชุดใหม่ถูกอัปเดตและแจ้งเตือนไปยัง Outlook เรียบร้อยแล้ว เลือกอ่านข่าวสารและเริ่มเจนโพสต์ Facebook ได้ทันที</p>
+                        </div>
+                    `;
+                    toast('ดึงข่าวสาร AI ชุดใหม่และส่งอีเมลแจ้งเตือนสำเร็จ!', 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (err) {
+                console.error("Error triggering manual sync: ", err);
+                toast(`การดึงข่าวล้มเหลว: ${err.message}`, 'error');
+            } finally {
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Settings modal actions
+        function openSettings() {
+            document.getElementById('api-key-input').value = '';
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        async function saveApiKey() {
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            if (!apiKey) {
+                toast('กรุณาป้อน API Key ให้ครบถ้วน', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/save-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    toast('บันทึก Gemini API Key สำเร็จแล้ว!', 'success');
+                    closeSettings();
+                    checkConfig(); // update badge UI
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                toast(`บันทึกไม่สำเร็จ: ${err.message}`, 'error');
+            }
+        }
+
+        // Save post idea to backend library
+        async function savePostIdea(idx) {
+            if (!generatedPosts || !selectedArticle) return;
+            
+            const idea = generatedPosts.ideas[idx];
+            const imagePrompt = generatedPosts.image_prompt || '';
+            
+            const btn = document.getElementById(`save-idea-btn-${idx}`);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+            
+            const payload = {
+                news_id: selectedArticle.id,
+                news_title: selectedArticle.title_summary || selectedArticle.title,
+                news_link: selectedArticle.link,
+                news_category: selectedArticle.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป',
+                angle: idea.angle || 'ทั่วไป',
+                content: document.getElementById(`post-body-text-${idx}`).innerText.trim(),
+                image_prompt: imagePrompt
+            };
+            
+            try {
+                const response = await fetch('/api/save-idea', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    btn.className = 'btn btn-success';
+                    btn.style.backgroundColor = 'var(--success)';
+                    btn.style.color = 'white';
+                    btn.style.borderColor = 'var(--success)';
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกแล้ว';
+                    toast('เก็บไอเดียนี้ลงคลังเรียบร้อยแล้ว!', 'success');
+                    updateLibraryBadge(); // update count badge
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-bookmark"></i> เก็บไอเดีย';
+                toast(`บันทึกล้มเหลว: ${err.message}`, 'error');
+            }
+        }
+
+        // Open Idea Library Modal
+        async function openLibrary() {
+            document.getElementById('library-status-filter').value = 'ALL';
+            document.getElementById('library-modal').classList.add('active');
+            
+            const listContainer = document.getElementById('library-content-list');
+            listContainer.innerHTML = `
+                <div style="padding: 10px;">
+                    <div class="skeleton-block" style="height: 120px; margin-bottom: 15px; border-radius: 8px;"></div>
+                    <div class="skeleton-block" style="height: 120px; margin-bottom: 15px; border-radius: 8px;"></div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/saved-ideas');
+                savedLibraryIdeas = await response.json();
+                document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
+                renderLibraryItems();
+            } catch (err) {
+                console.error("Error loading saved ideas:", err);
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: var(--danger); padding: 30px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <p>โหลดคลังไอเดียขัดข้อง</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeLibrary() {
+            document.getElementById('library-modal').classList.remove('active');
+        }
+
+        // Render library cards based on current status filter
+        function renderLibraryItems() {
+            const listContainer = document.getElementById('library-content-list');
+            const filterVal = document.getElementById('library-status-filter').value;
+            
+            let filtered = savedLibraryIdeas;
+            if (filterVal !== 'ALL') {
+                filtered = savedLibraryIdeas.filter(item => item.status === filterVal);
+            }
+            
+            document.getElementById('library-count').innerText = `จำนวนที่แสดง: ${filtered.length} / ทั้งหมด ${savedLibraryIdeas.length} รายการ`;
+            
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
+                        <i class="fa-regular fa-folder-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <p style="font-size: 14px; font-weight: bold;">ไม่พบรายการโพสต์ในหมวดหมู่นี้</p>
+                        <p style="font-size: 12px; margin-top: 4px;">คุณสามารถบันทึกไอเดียโพสต์จากหน้าวิเคราะห์ข่าวสารได้ตลอดเวลา</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            filtered.forEach(item => {
+                html += `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 10px; position: relative;">
+                        <!-- Top header details -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                            <div>
+                                <span class="category-tag" style="margin-bottom: 6px; font-size: 10px; display: inline-block;">${escapeHtml(item.news_category)}</span>
+                                <h4 style="font-size: 14px; font-weight: 800; line-height: 1.4; color: var(--text-main);">
+                                    <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                        <i class="fa-solid fa-link" style="font-size: 11px;"></i> ${escapeHtml(item.news_title)}
+                                    </a>
+                                </h4>
+                            </div>
+                            <button class="modal-close" style="color: var(--danger); font-size: 15px; padding: 4px; background: none; border: none; cursor: pointer; transition: var(--transition);" onclick="deleteIdea('${item.id}')" title="ลบออกจากคลัง">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Post content body -->
+                        <div class="fb-post-body" style="font-size: 13.5px; background-color: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #f1f5f9; white-space: pre-wrap; font-family: var(--font-family); color: #1c1e21; line-height: 1.6;">${escapeHtml(item.content)}</div>
+                        
+                        <!-- Image prompt box -->
+                        ${item.image_prompt ? `
+                        <div style="font-size: 12px; color: var(--text-main); background: #fef08a; padding: 10px; border-radius: 8px; border: 1px solid #fde047; font-family: monospace; word-break: break-all; line-height: 1.4;">
+                            <strong style="color: #854d0e;"><i class="fa-solid fa-palette"></i> Image Prompt:</strong> ${escapeHtml(item.image_prompt)}
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Footer action panel -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);"><i class="fa-regular fa-flag"></i> เปลี่ยนสถานะ:</span>
+                                <select class="form-input" style="padding: 4px 10px; font-size: 12px; width: 180px; font-weight: 600; height: 32px;" onchange="updateIdeaStatus('${item.id}', this.value)">
+                                    <option value="Waiting List" ${item.status === 'Waiting List' ? 'selected' : ''}>⏳ Waiting List (รอโพสต์)</option>
+                                    <option value="Used" ${item.status === 'Used' ? 'selected' : ''}>✅ Used (โพสต์แล้ว)</option>
+                                    <option value="Interested" ${item.status === 'Interested' ? 'selected' : ''}>⭐ Interested (สนใจ)</option>
+                                    <option value="Later" ${item.status === 'Later' ? 'selected' : ''}>📁 Later (ไว้ทีหลัง)</option>
+                                </select>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 11px; color: var(--text-muted);">เก็บเมื่อ: ${item.saved_at || ''}</span>
+                                <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px; border-radius: 8px;" onclick="copyLibraryText('${item.id}')">
+                                    <i class="fa-solid fa-copy"></i> คัดลอกเนื้อหา
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        // Change Idea Status in backend
+        async function updateIdeaStatus(id, newStatus) {
+            try {
+                const response = await fetch('/api/update-idea-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idea_id: id, status: newStatus })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('อัปเดตสถานะโพสต์เรียบร้อย!', 'success');
+                    const idea = savedLibraryIdeas.find(i => i.id === id);
+                    if (idea) idea.status = newStatus;
+                    renderLibraryItems();
+                }
+            } catch (err) {
+                console.error("Error updating idea status:", err);
+                toast('อัปเดตสถานะขัดข้อง', 'error');
+            }
+        }
+
+        // Delete Saved Idea
+        async function deleteIdea(id) {
+            if (!confirm('คุณแน่ใจว่าต้องการลบไอเดียโพสต์นี้ออกจากคลัง?')) return;
+            
+            try {
+                const response = await fetch('/api/delete-idea', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idea_id: id })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('ลบโพสต์ออกจากคลังสำเร็จ!', 'success');
+                    savedLibraryIdeas = savedLibraryIdeas.filter(i => i.id !== id);
+                    document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
+                    renderLibraryItems();
+                }
+            } catch (err) {
+                console.error("Error deleting saved idea:", err);
+                toast('ลบไอเดียขัดข้อง', 'error');
+            }
+        }
+
+        // Copy content text of saved idea from Library view
+        function copyLibraryText(id) {
+            const idea = savedLibraryIdeas.find(i => i.id === id);
+            if (!idea) return;
+            
+            navigator.clipboard.writeText(idea.content)
+                .then(() => {
+                    toast('คัดลอกโพสต์ไปยังคลิปบอร์ดแล้ว!', 'success');
+                })
+                .catch(err => {
+                    toast('คัดลอกล้มเหลว', 'error');
+                });
+        }
+
+        // Utilities helper
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const parts = dateStr.split(' ');
+                if (parts.length >= 2) {
+                    // return Date + Hour only for brevity
+                    return `${parts[0]} ${parts[1].substring(0, 5)}`;
+                }
+                return dateStr;
+            } catch (e) {
+                return dateStr;
+            }
+        }
+    </script>
+</body>
+</html>
