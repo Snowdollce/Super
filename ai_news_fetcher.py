@@ -161,31 +161,42 @@ def translate_and_summarize_title(title, desc=""):
     
     return summary_bullet, ""
 
-def summarize_with_gemini(title, desc, api_key):
+def summarize_batch_with_gemini(items, api_key):
     """
-    Calls the Gemini API to translate and summarize a news item.
-    Returns: (title_summary, desc_summary) in Thai.
+    Summarizes a batch of news items using a single Gemini API call to avoid rate limits.
     """
-    if not api_key:
-        return None
+    if not api_key or not items:
+        return []
         
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
     
+    # Format the input items for the prompt
+    formatted_items = []
+    for i, item in enumerate(items):
+        formatted_items.append(f"--- Article {i} ---\nTitle: {item['title']}\nDescription: {item['desc']}")
+    
+    input_text = "\n\n".join(formatted_items)
+    
     prompt = f"""
     You are an expert AI news translator and summarizer.
-    Translate and summarize the following news article into professional, concise Thai.
+    Translate and summarize the following list of news articles into professional, concise Thai.
     
-    News Title: {title}
-    News Description/Content: {desc}
+    {input_text}
     
     Guidelines:
-    1. Translate the Title into a clear, professional Thai headline. Keep it under 100 characters.
-    2. Summarize the Description/Content into a single concise Thai bullet point (max 150 characters) focusing on the absolute key takeaway.
-    3. Output the result strictly in JSON format with the following keys:
-       {{
-         "title_summary": "...",
-         "desc_summary": "..."
-       }}
+    1. Translate the Title of each article into a clear, professional Thai headline. Keep it under 100 characters.
+    2. Summarize the Description/Content of each article into a single concise Thai bullet point (max 150 characters) focusing on the absolute key takeaway.
+    3. Output the result strictly in JSON format as a list of objects with the keys "title_summary" and "desc_summary" in the exact same order as the input:
+       [
+         {{
+           "title_summary": "Headline 0...",
+           "desc_summary": "Summary 0..."
+         }},
+         {{
+           "title_summary": "Headline 1...",
+           "desc_summary": "Summary 1..."
+         }}
+       ]
     Do not include any other text or markdown block backticks around the JSON.
     """
     
@@ -206,15 +217,16 @@ def summarize_with_gemini(title, desc, api_key):
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=15) as res:
+        with urllib.request.urlopen(req, timeout=30) as res:
             response_body = res.read().decode("utf-8")
             res_json = json.loads(response_body)
             text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
             parsed = json.loads(text)
-            return parsed.get("title_summary", title), parsed.get("desc_summary", "")
+            if isinstance(parsed, list):
+                return parsed
     except Exception as e:
-        print(f"[!] Gemini translation failed for '{title}': {e}. Falling back to default translation.")
-        return None
+        print(f"[!] Gemini batch translation failed: {e}")
+    return []
 
 def save_news_data(news_list, filename="news_data.json"):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -250,7 +262,6 @@ def save_news_data(news_list, filename="news_data.json"):
 def categorize_items(news_items, api_key=None):
     """
     Categorizes news items into structured sections.
-    CRITICAL: '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป' is now FIRST!
     """
     categories = {
         "💡 นวัตกรรม & ข่าวสาร AI ทั่วไป": [],
@@ -259,39 +270,59 @@ def categorize_items(news_items, api_key=None):
         "🛡️ นโยบาย ความปลอดภัย & ธรรมาภิบาล AI": []
     }
     
+    # 1. Filter unique items
+    unique_items = []
     seen_titles = set()
-    
     for item in news_items:
         title = item["title"]
         if title in seen_titles:
             continue
         seen_titles.add(title)
+        unique_items.append(item)
         
-        # 1. Try Gemini Translation
-        t_summary = None
-        desc_summary = None
-        if api_key:
-            res_gemini = summarize_with_gemini(title, item["desc"], api_key)
-            if res_gemini:
-                t_summary, desc_summary = res_gemini
-                
-        # 2. Fallback to basic translation if Gemini failed or is not set
-        if not t_summary:
-            t_summary, desc_summary = translate_and_summarize_title(title, item["desc"])
-            
-        # 3. Generate article hash ID
+    # 2. Translate in batches of 8 to prevent oversized prompt or payload errors (8 is very safe)
+    summaries = []
+    if api_key and unique_items:
+        batch_size = 8
+        for i in range(0, len(unique_items), batch_size):
+            batch = unique_items[i:i+batch_size]
+            print(f"[*] Batch translating {len(batch)} items with Gemini API (Batch {i//batch_size + 1})...")
+            batch_summaries = summarize_batch_with_gemini(batch, api_key)
+            # Make sure we got a valid response list of the same length
+            if len(batch_summaries) == len(batch):
+                summaries.extend(batch_summaries)
+            else:
+                # Fallback to local translation for this batch
+                print(f"[!] Warning: Batch translation returned mismatched length. Using local fallback.")
+                for b_item in batch:
+                    t_sum, d_sum = translate_and_summarize_title(b_item["title"], b_item["desc"])
+                    summaries.append({"title_summary": t_sum, "desc_summary": d_sum})
+                    
+    # If no api_key or failed entirely
+    if len(summaries) < len(unique_items):
+        # Fill rest with local translation
+        start_idx = len(summaries)
+        for b_item in unique_items[start_idx:]:
+            t_sum, d_sum = translate_and_summarize_title(b_item["title"], b_item["desc"])
+            summaries.append({"title_summary": t_sum, "desc_summary": d_sum})
+
+    # 3. Categorize and build bullet items
+    for idx, item in enumerate(unique_items):
+        t_summary = summaries[idx]["title_summary"]
+        desc_summary = summaries[idx]["desc_summary"]
+        
         article_id = hashlib.md5(item["link"].encode('utf-8')).hexdigest()[:8]
         
         bullet_item = {
             "id": article_id,
             "title_summary": t_summary,
             "desc_summary": desc_summary,
-            "original_title": title,
+            "original_title": item["title"],
             "original_desc": item["desc"],
             "link": item["link"]
         }
         
-        t_lower = title.lower()
+        t_lower = item["title"].lower()
         if any(k in t_lower for k in ["model", "gpt", "claude", "gemini", "llama", "grok", "deepseek", "chip", "nvidia", "silicon", "agent"]):
             categories["🤖 การพัฒนาโมเดล & เทคโนโลยี AI ใหม่"].append(bullet_item)
         elif any(k in t_lower for k in ["business", "enterprise", "market", "revenue", "startup", "invest", "stock", "company", "work", "job"]):
