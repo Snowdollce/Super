@@ -1058,6 +1058,199 @@
             color: var(--text-muted);
             line-height: 1.5;
         }
+
+        .mobile-back-btn {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            font-family: var(--font-family);
+            transition: var(--transition);
+        }
+
+        .mobile-back-btn:hover {
+            color: var(--primary);
+        }
+
+        /* --- RESPONSIVE MEDIA QUERIES --- */
+
+        /* Tablets Layout (width <= 1024px) */
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 280px 1fr;
+                gap: 15px;
+                padding: 10px 15px 20px 15px;
+                height: calc(100vh - 110px);
+            }
+
+            header {
+                margin: 15px 15px 10px 15px;
+                padding: 10px 20px;
+            }
+
+            .logo-icon {
+                width: 54px;
+                height: 54px;
+                border-radius: 12px;
+            }
+
+            .logo-title h1 {
+                font-size: 22px;
+            }
+
+            .workspace-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+        }
+
+        /* Mobile Layout (width <= 768px) */
+        @media (max-width: 768px) {
+            header {
+                margin: 10px 10px 5px 10px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .logo-section {
+                gap: 10px;
+            }
+
+            .logo-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                font-size: 16px;
+            }
+
+            .logo-title h1 {
+                font-size: 18px;
+            }
+
+            .logo-title p {
+                font-size: 8px;
+                letter-spacing: 0.5px;
+            }
+
+            .header-actions {
+                gap: 8px;
+                width: 100%;
+                justify-content: space-between;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+                padding-top: 8px;
+            }
+
+            #api-status span {
+                display: none; /* Hide status text on mobile, just icon badge */
+            }
+
+            #api-status {
+                padding: 8px;
+                border-radius: 50%;
+                aspect-ratio: 1/1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            /* Responsive Sidebar and Workspace toggling */
+            .app-container {
+                display: block; /* Disable grid */
+                padding: 5px 10px 10px 10px;
+                height: calc(100vh - 150px);
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 100%;
+                border-radius: 14px;
+            }
+
+            .main-display {
+                width: 100%;
+                height: 100%;
+                border-radius: 14px;
+            }
+
+            /* If body has has-article class, show workspace, hide sidebar */
+            body.has-article .sidebar {
+                display: none !important;
+            }
+
+            body.has-article .main-display {
+                display: flex !important;
+            }
+
+            /* If body does NOT have has-article class, show sidebar, hide workspace */
+            body:not(.has-article) .sidebar {
+                display: flex !important;
+            }
+
+            body:not(.has-article) .main-display {
+                display: none !important;
+            }
+
+            .mobile-back-btn {
+                display: inline-flex;
+            }
+
+            .workspace {
+                height: 100%;
+            }
+
+            .workspace-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 15px 20px;
+            }
+
+            .workspace-header h2 {
+                font-size: 16px;
+            }
+
+            #btn-generate-ai {
+                width: 100%;
+            }
+
+            .workspace-content {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            /* Modal responsive */
+            .modal {
+                width: 95% !important;
+                padding: 15px !important;
+                max-height: 90vh;
+            }
+
+            /* Stats / Filter row wrap in library */
+            .modal-header + div {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+
+            #library-status-filter {
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1307,9 +1500,11 @@
                         selectedCategory = article.category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
                         selectArticle(article);
                     } else {
+                        document.body.classList.remove('has-article');
                         renderSidebar();
                     }
                 } else {
+                    document.body.classList.remove('has-article');
                     renderSidebar();
                 }
             } catch (err) {
@@ -1429,6 +1624,7 @@
         // Select active Category
         function selectCategory(catName) {
             selectedCategory = catName;
+            document.body.classList.remove('has-article');
             renderSidebar();
         }
 
@@ -1499,6 +1695,13 @@
             
             // Render workspace layout
             renderWorkspace();
+            
+            // Add class for mobile responsive layout
+            document.body.classList.add('has-article');
+        }
+
+        function goBackToSidebar() {
+            document.body.classList.remove('has-article');
         }
 
         // Render Workspace View
@@ -1509,6 +1712,9 @@
             container.innerHTML = `
                 <div class="workspace">
                     <div class="workspace-header">
+                        <button class="mobile-back-btn" onclick="goBackToSidebar()">
+                            <i class="fa-solid fa-arrow-left"></i> ย้อนกลับไปรายการข่าว
+                        </button>
                         <div class="article-title-section">
                             <span class="category-tag">${escapeHtml(selectedArticle.category || 'ข่าวสาร AI')}</span>
                             <h2>${escapeHtml(selectedArticle.title_summary || selectedArticle.title)}</h2>
@@ -1771,6 +1977,7 @@
                 if (data.success) {
                     allNews = data.news || [];
                     selectedArticle = null;
+                    document.body.classList.remove('has-article');
                     renderSidebar();
                     
                     // Reset main content display to empty
