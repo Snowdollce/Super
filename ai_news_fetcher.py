@@ -15,7 +15,9 @@ import sys
 import re
 import xml.etree.ElementTree as ET
 import urllib.request
+import urllib.error
 import urllib.parse
+import time
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -215,8 +217,6 @@ def summarize_batch_with_gemini(items, api_key):
         }
     }
     
-    import time
-    import urllib.error
     max_retries = 3
     for attempt in range(max_retries):
         try:

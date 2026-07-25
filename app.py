@@ -13,6 +13,8 @@ import socketserver
 import json
 import os
 import urllib.request
+import urllib.error
+import time
 import subprocess
 import sys
 import re
@@ -236,8 +238,6 @@ def call_gemini_api(api_key, title, desc, link):
         method="POST"
     )
     
-    import time
-    import urllib.error
     max_retries = 3
     for attempt in range(max_retries):
         try:
