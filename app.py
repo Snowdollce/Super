@@ -108,7 +108,11 @@ def load_config():
     """Loads environment variables from config.env and os.environ."""
     config = {}
     # Read from environment variables first (such as Render environment variables)
-    keys_to_read = ["GEMINI_API_KEY", "SMTP_SERVER", "SMTP_PORT", "USE_TLS", "SENDER_EMAIL", "SENDER_PASSWORD", "RECIPIENT_EMAIL", "SUPABASE_URL", "SUPABASE_KEY"]
+    keys_to_read = [
+        "GEMINI_API_KEY", "SMTP_SERVER", "SMTP_PORT", "USE_TLS", 
+        "SENDER_EMAIL", "SENDER_PASSWORD", "RECIPIENT_EMAIL", 
+        "SUPABASE_URL", "SUPABASE_KEY", "FB_PAGE_ID", "FB_PAGE_ACCESS_TOKEN"
+    ]
     for key in keys_to_read:
         val = os.environ.get(key)
         if val is not None:
