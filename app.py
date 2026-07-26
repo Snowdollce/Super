@@ -329,6 +329,152 @@ def publish_to_facebook(idea):
                 pass
         return False, f"Facebook API error: {err_msg}"
 
+def upload_temp_photo_to_facebook(page_id, access_token, img_data, filename):
+    url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+    
+    content_type = "image/jpeg"
+    if filename.lower().endswith(".png"):
+        content_type = "image/png"
+    elif filename.lower().endswith(".gif"):
+        content_type = "image/gif"
+        
+    parts = []
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="published"')
+    parts.append(b'')
+    parts.append(b'false')
+    
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="temporary"')
+    parts.append(b'')
+    parts.append(b'true')
+    
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="access_token"')
+    parts.append(b'')
+    parts.append(access_token.encode("utf-8"))
+    
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(f'Content-Disposition: form-data; name="source"; filename="{filename}"'.encode("utf-8"))
+    parts.append(f'Content-Type: {content_type}'.encode("utf-8"))
+    parts.append(b'')
+    parts.append(img_data)
+    
+    parts.append(f"--{boundary}--".encode("utf-8"))
+    parts.append(b'')
+    
+    body = b"\r\n".join(parts)
+    
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Content-Length": len(body)
+        },
+        method="POST"
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            res_data = json.loads(res.read().decode("utf-8"))
+            return True, res_data.get("id")
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'read'):
+            try:
+                err_msg += " - " + e.read().decode('utf-8')
+            except Exception:
+                pass
+        return False, f"Facebook Photo Upload error: {err_msg}"
+
+def schedule_to_facebook(idea, scheduled_time_str):
+    config = load_config()
+    page_id = config.get("FB_PAGE_ID", "").strip()
+    access_token = config.get("FB_PAGE_ACCESS_TOKEN", "").strip()
+    if not page_id or not access_token:
+        return False, "Facebook Page ID or Access Token is missing in configuration."
+        
+    try:
+        dt = datetime.strptime(scheduled_time_str, "%Y-%m-%d %H:%M:%S")
+        timestamp = int(dt.timestamp())
+    except Exception as e:
+        return False, f"Invalid date format: {e}"
+        
+    message = idea.get("content", "")
+    image_id = idea.get("selected_image_id", "")
+    
+    photo_id = None
+    if image_id:
+        images = load_saved_images_list()
+        image = next((img for img in images if img["id"] == image_id), None)
+        if image:
+            local_path = os.path.join(DIRECTORY, "web", "uploads", image_id)
+            if os.path.exists(local_path):
+                try:
+                    with open(local_path, "rb") as f:
+                        img_data = f.read()
+                    success, res_val = upload_temp_photo_to_facebook(page_id, access_token, img_data, image_id)
+                    if not success:
+                        return False, f"Failed to upload photo for scheduling: {res_val}"
+                    photo_id = res_val
+                except Exception as e:
+                    return False, f"Failed to read/upload local image: {e}"
+            else:
+                return False, f"Local image file not found on disk: {image_id}"
+                
+    url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+    params = {
+        "message": message,
+        "published": "false",
+        "scheduled_publish_time": str(timestamp),
+        "unpublished_content_type": "SCHEDULED",
+        "access_token": access_token
+    }
+    if photo_id:
+        params["attached_media[0]"] = json.dumps({"media_fbid": photo_id})
+        
+    payload = urllib.parse.urlencode(params).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as res:
+            res_data = json.loads(res.read().decode("utf-8"))
+            return True, res_data.get("id")
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'read'):
+            try:
+                err_msg += " - " + e.read().decode('utf-8')
+            except Exception:
+                pass
+        return False, f"Facebook API error: {err_msg}"
+
+def delete_facebook_post(post_id):
+    config = load_config()
+    access_token = config.get("FB_PAGE_ACCESS_TOKEN", "").strip()
+    if not access_token:
+        return False, "Facebook Access Token is missing."
+        
+    url = f"https://graph.facebook.com/v20.0/{post_id}"
+    payload = urllib.parse.urlencode({
+        "access_token": access_token
+    }).encode("utf-8")
+    
+    req = urllib.request.Request(url, data=payload, method="DELETE")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as res:
+            res_data = json.loads(res.read().decode("utf-8"))
+            return res_data.get("success", False), ""
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'read'):
+            try:
+                err_msg += " - " + e.read().decode('utf-8')
+            except Exception:
+                pass
+        return False, f"Facebook API delete error: {err_msg}"
+
 def scheduler_loop():
     print("[*] Background scheduler thread started.")
     while True:
@@ -342,23 +488,28 @@ def scheduler_loop():
                     sched_min = sched_time[:16]
                     now_min = now_str[:16]
                     if now_min >= sched_min:
-                        print(f"[*] Posting scheduled idea {idea['id']} to Facebook (scheduled: {sched_time}, now: {now_str})")
-                        idea["status"] = "Posting"
-                        if get_supabase_config():
-                            update_saved_idea_status_supabase(idea["id"], "Posting")
-                        else:
-                            save_saved_ideas(ideas)
-                            
-                        success, post_id_or_err = publish_to_facebook(idea)
-                        if success:
+                        if idea.get("facebook_post_id"):
+                            print(f"[*] Scheduled idea {idea['id']} was already scheduled on Facebook (ID: {idea['facebook_post_id']}). Marking as Used.")
                             idea["status"] = "Used"
-                            idea["facebook_post_id"] = post_id_or_err
-                            idea["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            print(f"[SUCCESS] Posted idea {idea['id']} to FB Page. Post ID: {post_id_or_err}")
+                            idea["posted_at"] = sched_time
                         else:
-                            idea["status"] = "Failed"
-                            idea["post_error"] = post_id_or_err
-                            print(f"[ERROR] Failed to post scheduled idea {idea['id']}: {post_id_or_err}")
+                            print(f"[*] Posting scheduled idea {idea['id']} to Facebook (scheduled: {sched_time}, now: {now_str})")
+                            idea["status"] = "Posting"
+                            if get_supabase_config():
+                                update_saved_idea_status_supabase(idea["id"], "Posting")
+                            else:
+                                save_saved_ideas(ideas)
+                                
+                            success, post_id_or_err = publish_to_facebook(idea)
+                            if success:
+                                idea["status"] = "Used"
+                                idea["facebook_post_id"] = post_id_or_err
+                                idea["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                print(f"[SUCCESS] Posted idea {idea['id']} to FB Page. Post ID: {post_id_or_err}")
+                            else:
+                                idea["status"] = "Failed"
+                                idea["post_error"] = post_id_or_err
+                                print(f"[ERROR] Failed to post scheduled idea {idea['id']}: {post_id_or_err}")
                             
                         if get_supabase_config():
                             save_saved_ideas_supabase(idea)
@@ -385,7 +536,7 @@ def call_gemini_api(api_key, title, desc, link):
     Guidelines for the Facebook post ideas:
     1. Tone & Persona: Speak in a friendly "friend telling news" style (เพื่อนบอกข่าว) - conversational, engaging, friendly, easy to understand, yet professional and credible. Do NOT use polite sentence-ending particles like "ค่ะ" (kha), "นะคะ" (na-kha), or "ครับ" (krub). Ensure the text reads naturally and professionally without these particles.
     2. Hook: Every idea MUST start with a strong, eye-catching hook as the very first sentence (วาง Hook ไว้เป็นประโยคแรกเสมอ) to grab readers' attention immediately.
-    3. Structure: Use emojis appropriately, format with clear paragraph breaks, and you MUST always include the hashtags: #จันนิลองเอไอ #AIbyJannie along with other relevant hashtags (e.g., #AI #Technology).
+    3. Structure: Use emojis appropriately, format with clear paragraph breaks, and you MUST always include the hashtags: #จันนิใช้เอไอ #AIbyJannie along with other relevant hashtags (e.g., #AI #Technology).
     4. Content: Explain the core essence of the news and why the reader should care.
        - Idea 1 (ไอเดียที่ 1): Must be in an educational/informative style (สไตล์ให้ความรู้) and its length must not exceed 250 words (ความยาวไม่เกิน 250 คำ).
        - Other Ideas (e.g., Idea 2, 3, etc.): Can offer different angles/styles (e.g., Practical/Business impact, Question/Discussion starter, Fun/Informative).
@@ -663,25 +814,49 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
             ideas = load_saved_ideas()
             success = False
+            error_msg = ""
             for idea in ideas:
                 if idea["id"] == idea_id:
-                    idea["status"] = "Scheduled"
+                    old_fb_id = idea.get("facebook_post_id")
+                    if old_fb_id:
+                        try:
+                            delete_facebook_post(old_fb_id)
+                        except Exception as e:
+                            print(f"Warning: Failed to delete old scheduled post {old_fb_id}: {e}")
+                            
                     idea["scheduled_time"] = scheduled_time
                     idea["selected_image_id"] = selected_image_id
-                    if "post_error" in idea:
-                        del idea["post_error"]
-                    success = True
+                    
+                    fb_success, fb_res = schedule_to_facebook(idea, scheduled_time)
+                    if fb_success:
+                        idea["status"] = "Scheduled"
+                        idea["facebook_post_id"] = fb_res
+                        if "post_error" in idea:
+                            del idea["post_error"]
+                        success = True
+                    else:
+                        error_msg = fb_res
+                        idea["status"] = "Failed"
+                        idea["post_error"] = fb_res
+                        
                     if get_supabase_config():
                         save_saved_ideas_supabase(idea)
                     break
                     
-            if success and not get_supabase_config():
-                save_saved_ideas(ideas)
-                
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
+            if success:
+                if not get_supabase_config():
+                    save_saved_ideas(ideas)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            else:
+                if not get_supabase_config():
+                    save_saved_ideas(ideas)
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": error_msg or "Failed to schedule on Facebook"}).encode("utf-8"))
             return
 
         elif self.path == "/api/cancel-post":
@@ -698,8 +873,18 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             success = False
             for idea in ideas:
                 if idea["id"] == idea_id:
+                    old_fb_id = idea.get("facebook_post_id")
+                    if old_fb_id:
+                        try:
+                            delete_facebook_post(old_fb_id)
+                        except Exception as e:
+                            print(f"Warning: Failed to delete Facebook post on cancel: {e}")
                     idea["status"] = "Waiting List"
                     idea["scheduled_time"] = ""
+                    if "facebook_post_id" in idea:
+                        del idea["facebook_post_id"]
+                    if "post_error" in idea:
+                        del idea["post_error"]
                     success = True
                     if get_supabase_config():
                         save_saved_ideas_supabase(idea)
@@ -738,6 +923,13 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Idea not found"}).encode("utf-8"))
                 return
                 
+            old_fb_id = target_idea.get("facebook_post_id")
+            if old_fb_id:
+                try:
+                    delete_facebook_post(old_fb_id)
+                except Exception as e:
+                    print(f"Warning: Failed to delete scheduled post before publish-now: {e}")
+                    
             success, post_id_or_err = publish_to_facebook(target_idea)
             if success:
                 target_idea["status"] = "Used"
