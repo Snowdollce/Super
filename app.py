@@ -19,12 +19,54 @@ import subprocess
 import sys
 import re
 import hashlib
+import threading
+import base64
 from datetime import datetime
 
 PORT = 5000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(DIRECTORY, "web")
 SAVED_IDEAS_FILE = os.path.join(DIRECTORY, "saved_ideas.json")
+SAVED_IMAGES_FILE = os.path.join(DIRECTORY, "saved_images.json")
+
+def load_saved_images_list():
+    if os.path.exists(SAVED_IMAGES_FILE):
+        try:
+            with open(SAVED_IMAGES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print("Error loading saved images:", e)
+    return []
+
+def save_saved_images_list(images):
+    try:
+        with open(SAVED_IMAGES_FILE, "w", encoding="utf-8") as f:
+            json.dump(images, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print("Error saving images list:", e)
+    return False
+
+def save_config_keys_to_env(new_settings):
+    env_path = os.path.join(DIRECTORY, "config.env")
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            
+    for key, val in new_settings.items():
+        key_exists = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith(f"{key}="):
+                lines[i] = f"{key}={val}\n"
+                key_exists = True
+                break
+        if not key_exists:
+            lines.append(f"{key}={val}\n")
+            
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    return True
 
 def load_saved_ideas():
     supabase = get_supabase_config()
@@ -183,6 +225,147 @@ def save_api_key_to_env(api_key):
         f.writelines(lines)
     return True
 
+def upload_photo_to_facebook(page_id, access_token, img_data, caption, filename):
+    url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+    boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+    
+    content_type = "image/jpeg"
+    if filename.lower().endswith(".png"):
+        content_type = "image/png"
+    elif filename.lower().endswith(".gif"):
+        content_type = "image/gif"
+        
+    parts = []
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="caption"')
+    parts.append(b'')
+    parts.append(caption.encode("utf-8"))
+    
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(b'Content-Disposition: form-data; name="access_token"')
+    parts.append(b'')
+    parts.append(access_token.encode("utf-8"))
+    
+    parts.append(f"--{boundary}".encode("utf-8"))
+    parts.append(f'Content-Disposition: form-data; name="source"; filename="{filename}"'.encode("utf-8"))
+    parts.append(f'Content-Type: {content_type}'.encode("utf-8"))
+    parts.append(b'')
+    parts.append(img_data)
+    
+    parts.append(f"--{boundary}--".encode("utf-8"))
+    parts.append(b'')
+    
+    body = b"\r\n".join(parts)
+    
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Content-Length": len(body)
+        },
+        method="POST"
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            res_data = json.loads(res.read().decode("utf-8"))
+            return True, res_data.get("id")
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'read'):
+            try:
+                err_msg += " - " + e.read().decode('utf-8')
+            except Exception:
+                pass
+        return False, f"Facebook Photo API error: {err_msg}"
+
+def publish_to_facebook(idea):
+    config = load_config()
+    page_id = config.get("FB_PAGE_ID", "").strip()
+    access_token = config.get("FB_PAGE_ACCESS_TOKEN", "").strip()
+    if not page_id or not access_token:
+        return False, "Facebook Page ID or Access Token is missing in configuration."
+        
+    message = idea.get("content", "")
+    image_id = idea.get("selected_image_id", "")
+    
+    if image_id:
+        images = load_saved_images_list()
+        image = next((img for img in images if img["id"] == image_id), None)
+        if image:
+            local_path = os.path.join(DIRECTORY, "web", "uploads", image_id)
+            if os.path.exists(local_path):
+                try:
+                    with open(local_path, "rb") as f:
+                        img_data = f.read()
+                    return upload_photo_to_facebook(page_id, access_token, img_data, message, image_id)
+                except Exception as e:
+                    return False, f"Failed to read local image: {e}"
+            else:
+                return False, f"Local image file not found on disk: {image_id}"
+                
+    url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+    payload = urllib.parse.urlencode({
+        "message": message,
+        "access_token": access_token
+    }).encode("utf-8")
+    
+    req = urllib.request.Request(url, data=payload, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as res:
+            res_data = json.loads(res.read().decode("utf-8"))
+            return True, res_data.get("id")
+    except Exception as e:
+        err_msg = str(e)
+        if hasattr(e, 'read'):
+            try:
+                err_msg += " - " + e.read().decode('utf-8')
+            except Exception:
+                pass
+        return False, f"Facebook API error: {err_msg}"
+
+def scheduler_loop():
+    print("[*] Background scheduler thread started.")
+    while True:
+        try:
+            ideas = load_saved_ideas()
+            updated = False
+            for idea in ideas:
+                if idea.get("status") == "Scheduled" and idea.get("scheduled_time"):
+                    sched_time = idea.get("scheduled_time")
+                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    sched_min = sched_time[:16]
+                    now_min = now_str[:16]
+                    if now_min >= sched_min:
+                        print(f"[*] Posting scheduled idea {idea['id']} to Facebook (scheduled: {sched_time}, now: {now_str})")
+                        idea["status"] = "Posting"
+                        if get_supabase_config():
+                            update_saved_idea_status_supabase(idea["id"], "Posting")
+                        else:
+                            save_saved_ideas(ideas)
+                            
+                        success, post_id_or_err = publish_to_facebook(idea)
+                        if success:
+                            idea["status"] = "Used"
+                            idea["facebook_post_id"] = post_id_or_err
+                            idea["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            print(f"[SUCCESS] Posted idea {idea['id']} to FB Page. Post ID: {post_id_or_err}")
+                        else:
+                            idea["status"] = "Failed"
+                            idea["post_error"] = post_id_or_err
+                            print(f"[ERROR] Failed to post scheduled idea {idea['id']}: {post_id_or_err}")
+                            
+                        if get_supabase_config():
+                            save_saved_ideas_supabase(idea)
+                        else:
+                            save_saved_ideas(ideas)
+                        updated = True
+            
+        except Exception as e:
+            print("[Scheduler Exception]:", e)
+        time.sleep(30)
+
 def call_gemini_api(api_key, title, desc, link):
     """Calls Gemini API to generate Facebook post ideas and image prompt."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
@@ -196,11 +379,12 @@ def call_gemini_api(api_key, title, desc, link):
     Original Link: {link}
     
     Guidelines for the Facebook post ideas:
-    1. Tone & Persona: Female narrator/storyteller (ผู้หญิงเล่าเรื่อง). Speak in a friendly "friend telling news" style (เพื่อนบอกข่าว) - conversational, engaging, friendly, easy to understand, yet professional and credible. Use polite female sentence-ending particles: "ค่ะ" (kha) and "นะคะ" (na-kha) instead of masculine ones like "ครับ" (krub). Never use "ครับ" in the posts.
-    2. Hook: Must have a strong, eye-catching hook in the very first line (Hook ตั้งแต่บรรทัดแรก) to grab readers' attention immediately.
-    3. Structure: Use emojis appropriately, format with clear paragraph breaks, and include relevant hashtags (e.g., #AI #Technology #ความรู้AI).
-    4. Content: Explain the core essence of the news and why the reader should care, keeping it concise but informative.
-    5. Offer 3-5 different angles/styles (e.g., Angle 1: Mind-blowing/Exciting, Angle 2: Practical/Business impact, Angle 3: Question/Discussion starter, Angle 4: Fun/Informative).
+    1. Tone & Persona: Speak in a friendly "friend telling news" style (เพื่อนบอกข่าว) - conversational, engaging, friendly, easy to understand, yet professional and credible. Do NOT use polite sentence-ending particles like "ค่ะ" (kha), "นะคะ" (na-kha), or "ครับ" (krub). Ensure the text reads naturally and professionally without these particles.
+    2. Hook: Every idea MUST start with a strong, eye-catching hook as the very first sentence (วาง Hook ไว้เป็นประโยคแรกเสมอ) to grab readers' attention immediately.
+    3. Structure: Use emojis appropriately, format with clear paragraph breaks, and you MUST always include the hashtags: #จันนิลองเอไอ #AIbyJannie along with other relevant hashtags (e.g., #AI #Technology).
+    4. Content: Explain the core essence of the news and why the reader should care.
+       - Idea 1 (ไอเดียที่ 1): Must be in an educational/informative style (สไตล์ให้ความรู้) and its length must not exceed 250 words (ความยาวไม่เกิน 250 คำ).
+       - Other Ideas (e.g., Idea 2, 3, etc.): Can offer different angles/styles (e.g., Practical/Business impact, Question/Discussion starter, Fun/Informative).
     
     Guidelines for the Image Prompt:
     Generate one highly detailed prompt (in English) for an AI image generator (such as Midjourney, DALL-E 3, or Stable Diffusion) to create a matching illustration or conceptual image for this post. The image should look premium, modern, and conceptual. Avoid text in the image. Format: "A futuristic/conceptual illustration of... style: clean, modern tech, 3d render/digital art, vibrant lighting, highly detailed --ar 16:9"
@@ -291,8 +475,12 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             recipient = config.get("RECIPIENT_EMAIL", "")
             self.wfile.write(json.dumps({
                 "has_gemini_key": has_key,
-                "recipient_email": recipient
-            }).encode("utf-8"))
+                "recipient_email": recipient,
+                "fb_page_id": config.get("FB_PAGE_ID", ""),
+                "fb_page_access_token": config.get("FB_PAGE_ACCESS_TOKEN", ""),
+                "google_api_key": config.get("GOOGLE_API_KEY", ""),
+                "gd_folder_id": config.get("GD_FOLDER_ID", "1Yw-r-tMVphny6fAkaTgSD9w812WC8dsy")
+            }, ensure_ascii=False).encode("utf-8"))
             return
             
         elif self.path == "/api/saved-ideas":
@@ -301,6 +489,14 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             ideas = load_saved_ideas()
             self.wfile.write(json.dumps(ideas, ensure_ascii=False).encode("utf-8"))
+            return
+
+        elif self.path == "/api/images":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            images = load_saved_images_list()
+            self.wfile.write(json.dumps(images, ensure_ascii=False).encode("utf-8"))
             return
 
         # Serve static HTML/JS/CSS from 'web' directory
@@ -376,6 +572,188 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            return
+            
+        elif self.path == "/api/save-config":
+            api_key = req_data.get("api_key", "").strip()
+            fb_page_id = req_data.get("fb_page_id", "").strip()
+            fb_page_access_token = req_data.get("fb_page_access_token", "").strip()
+            google_api_key = req_data.get("google_api_key", "").strip()
+            gd_folder_id = req_data.get("gd_folder_id", "").strip()
+            
+            settings = {}
+            if api_key:
+                settings["GEMINI_API_KEY"] = api_key
+            settings["FB_PAGE_ID"] = fb_page_id
+            settings["FB_PAGE_ACCESS_TOKEN"] = fb_page_access_token
+            settings["GOOGLE_API_KEY"] = google_api_key
+            settings["GD_FOLDER_ID"] = gd_folder_id
+            
+            success = save_config_keys_to_env(settings)
+            
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/images/upload":
+            filename = req_data.get("filename", "").strip()
+            base64_data = req_data.get("data", "").strip()
+            
+            if not filename or not base64_data:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "filename and data are required"}).encode("utf-8"))
+                return
+                
+            uploads_dir = os.path.join(DIRECTORY, "web", "uploads")
+            os.makedirs(uploads_dir, exist_ok=True)
+            
+            if "," in base64_data:
+                base64_data = base64_data.split(",", 1)[1]
+                
+            try:
+                img_bytes = base64.b64decode(base64_data)
+                name_parts = os.path.splitext(filename)
+                unique_filename = f"{name_parts[0]}_{int(time.time())}{name_parts[1]}"
+                file_path = os.path.join(uploads_dir, unique_filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(img_bytes)
+                    
+                images = load_saved_images_list()
+                new_image = {
+                    "id": unique_filename,
+                    "name": filename,
+                    "url": f"/uploads/{unique_filename}",
+                    "source": "local",
+                    "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                images.insert(0, new_image)
+                save_saved_images_list(images)
+                
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "image": new_image}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"Failed to upload image: {e}"}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/schedule-post":
+            idea_id = req_data.get("idea_id", "").strip()
+            scheduled_time = req_data.get("scheduled_time", "").strip()
+            selected_image_id = req_data.get("selected_image_id", "").strip()
+            
+            if not idea_id or not scheduled_time:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "idea_id and scheduled_time are required"}).encode("utf-8"))
+                return
+                
+            ideas = load_saved_ideas()
+            success = False
+            for idea in ideas:
+                if idea["id"] == idea_id:
+                    idea["status"] = "Scheduled"
+                    idea["scheduled_time"] = scheduled_time
+                    idea["selected_image_id"] = selected_image_id
+                    if "post_error" in idea:
+                        del idea["post_error"]
+                    success = True
+                    if get_supabase_config():
+                        save_saved_ideas_supabase(idea)
+                    break
+                    
+            if success and not get_supabase_config():
+                save_saved_ideas(ideas)
+                
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/cancel-post":
+            idea_id = req_data.get("idea_id", "").strip()
+            
+            if not idea_id:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "idea_id is required"}).encode("utf-8"))
+                return
+                
+            ideas = load_saved_ideas()
+            success = False
+            for idea in ideas:
+                if idea["id"] == idea_id:
+                    idea["status"] = "Waiting List"
+                    idea["scheduled_time"] = ""
+                    success = True
+                    if get_supabase_config():
+                        save_saved_ideas_supabase(idea)
+                    break
+                    
+            if success and not get_supabase_config():
+                save_saved_ideas(ideas)
+                
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
+            return
+
+        elif self.path == "/api/publish-now":
+            idea_id = req_data.get("idea_id", "").strip()
+            
+            if not idea_id:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "idea_id is required"}).encode("utf-8"))
+                return
+                
+            ideas = load_saved_ideas()
+            target_idea = None
+            for idea in ideas:
+                if idea["id"] == idea_id:
+                    target_idea = idea
+                    break
+                    
+            if not target_idea:
+                self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Idea not found"}).encode("utf-8"))
+                return
+                
+            success, post_id_or_err = publish_to_facebook(target_idea)
+            if success:
+                target_idea["status"] = "Used"
+                target_idea["facebook_post_id"] = post_id_or_err
+                target_idea["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if "post_error" in target_idea:
+                    del target_idea["post_error"]
+            else:
+                target_idea["status"] = "Failed"
+                target_idea["post_error"] = post_id_or_err
+                
+            if get_supabase_config():
+                save_saved_ideas_supabase(target_idea)
+            else:
+                save_saved_ideas(ideas)
+                
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": success, "error": post_id_or_err if not success else None, "post_id": post_id_or_err if success else None}).encode("utf-8"))
             return
             
         elif self.path == "/api/save-idea":
@@ -574,6 +952,11 @@ def run(server_class=http.server.HTTPServer, handler_class=CustomHTTPRequestHand
     print(f" [SUCCESS] AI News Automation Server Running on Port {PORT}")
     print(f" Access URL: http://localhost:{PORT}")
     print(f"============================================================\n")
+    
+    # Start background scheduler daemon thread
+    t = threading.Thread(target=scheduler_loop, daemon=True)
+    t.start()
+    
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

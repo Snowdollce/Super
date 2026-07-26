@@ -1329,7 +1329,19 @@
                 <span style="font-size: 11px; color: var(--text-muted);">คุณสามารถขอ Gemini API Key ได้ฟรีผ่านเว็บพอร์ทัล Google AI Studio</span>
             </div>
             
-            <div class="input-group">
+            <div class="input-group" style="margin-top: 15px;">
+                <label class="input-label" for="fb-page-id-input">Facebook Page ID</label>
+                <input type="text" id="fb-page-id-input" class="form-input" placeholder="ป้อนรหัสเพจ เช่น 61592340097125">
+                <span style="font-size: 11px; color: var(--text-muted);">รหัสของเพจ Facebook ที่ต้องการให้ระบบโพสต์อัตโนมัติ</span>
+            </div>
+            
+            <div class="input-group" style="margin-top: 15px;">
+                <label class="input-label" for="fb-page-token-input">Facebook Page Access Token</label>
+                <input type="password" id="fb-page-token-input" class="form-input" placeholder="ป้อนรหัสโทเค็นระยะยาวของเพจ (EAA...)">
+                <span style="font-size: 11px; color: var(--text-muted);">สิทธิ์การเข้าถึงสำหรับส่งข้อความโพสต์และรูปภาพประกอบ</span>
+            </div>
+            
+            <div class="input-group" style="margin-top: 15px;">
                 <label class="input-label">ข้อมูลการส่งอีเมลปลายทาง</label>
                 <input type="text" id="email-recipient-info" class="form-input" readonly disabled style="background-color: #f1f5f9; cursor: not-allowed;">
                 <span style="font-size: 11px; color: var(--text-muted);">* คุณสามารถแก้ไขอีเมลผู้ส่ง/ผู้รับได้ในไฟล์ config.env ภายในเครื่องคอมพิวเตอร์ของคุณ</span>
@@ -1337,7 +1349,7 @@
             
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeSettings()">ยกเลิก</button>
-                <button class="btn btn-primary" onclick="saveApiKey()">บันทึกข้อมูล</button>
+                <button class="btn btn-primary" onclick="saveAppConfig()">บันทึกข้อมูล</button>
             </div>
         </div>
     </div>
@@ -1349,25 +1361,68 @@
                 <h3><i class="fa-solid fa-book-bookmark" style="color: var(--primary); margin-right: 8px;"></i> คลังไอเดียโพสต์และข่าวสาร</h3>
                 <button class="modal-close" onclick="closeLibrary()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
-            <!-- Filters & Stats row -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองสถานะ:</span>
-                    <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="renderLibraryItems()">
-                        <option value="ALL">ทั้งหมด</option>
-                        <option value="Waiting List">⏳ Waiting List (รอคิวโพสต์)</option>
-                        <option value="Used">✅ Used (โพสต์ไปแล้ว)</option>
-                        <option value="Interested">⭐ Interested (น่าสนใจ/ร่างไว)</option>
-                        <option value="Later">📁 Later (ไว้โพสต์ทีหลัง)</option>
-                    </select>
+            <!-- Tab Navigation -->
+            <div style="display: flex; gap: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 10px;">
+                <button id="tab-ideas-btn" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('ideas')">
+                    <i class="fa-solid fa-book-bookmark"></i> ไอเดียโพสต์
+                </button>
+                <button id="tab-images-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('images')">
+                    <i class="fa-solid fa-images"></i> คลังรูปภาพประกอบ
+                </button>
+            </div>
+
+            <!-- Ideas Tab Content -->
+            <div id="tab-ideas-content" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <!-- Filters & Stats row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองสถานะ:</span>
+                        <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="renderLibraryItems()">
+                            <option value="ALL">ทั้งหมด</option>
+                            <option value="Waiting List">⏳ Waiting List (รอคิวโพสต์)</option>
+                            <option value="Scheduled">📅 Scheduled (ตั้งเวลาโพสต์)</option>
+                            <option value="Used">✅ Used (โพสต์ไปแล้ว)</option>
+                            <option value="Failed">❌ Failed (โพสต์ไม่สำเร็จ)</option>
+                            <option value="Interested">⭐ Interested (น่าสนใจ/ร่างไว)</option>
+                            <option value="Later">📁 Later (ไว้โพสต์ทีหลัง)</option>
+                        </select>
+                    </div>
+                    <span id="library-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
                 </div>
-                <span id="library-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
+                
+                <!-- Library content list (scrollable) -->
+                <div id="library-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Loaded items will render here -->
+                </div>
             </div>
             
-            <!-- Library content list (scrollable) -->
-            <div id="library-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
-                <!-- Loaded items will render here -->
+            <!-- Images Tab Content (Hidden by default) -->
+            <div id="tab-images-content" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+                <!-- Upload Area and Stats -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageFileSelected(event)">
+                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="document.getElementById('image-upload-input').click()">
+                            <i class="fa-solid fa-upload"></i> อัปโหลดรูปภาพใหม่
+                        </button>
+                        <span style="font-size: 12px; color: var(--text-muted);">รองรับ PNG, JPG, GIF (ความละเอียดสูง ไม่บีบอัดภาพ)</span>
+                    </div>
+                    <span id="images-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รูป</span>
+                </div>
+                
+                <!-- Drag and drop zone -->
+                <div id="image-drag-zone" style="border: 2px dashed var(--primary); border-radius: 12px; padding: 25px; text-align: center; color: var(--primary); background: hsl(var(--primary) / 0.03); cursor: pointer; transition: all 0.2s ease; margin-bottom: 15px;"
+                     ondragover="event.preventDefault(); this.style.background = 'hsl(var(--primary) / 0.1)'"
+                     ondragleave="this.style.background = 'hsl(var(--primary) / 0.03)'"
+                     ondrop="handleImageDrop(event)">
+                     <i class="fa-solid fa-cloud-arrow-up" style="font-size: 32px; margin-bottom: 8px;"></i>
+                     <p style="font-size: 13px; font-weight: 700; margin: 0;">ลากรูปภาพมาวางที่นี่เพื่ออัปโหลดทันที</p>
+                </div>
+                
+                <!-- Images Grid -->
+                <div id="images-grid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 5px 0;">
+                    <!-- Loaded images will render here -->
+                </div>
             </div>
         </div>
     </div>
@@ -2003,9 +2058,18 @@
         }
 
         // Settings modal actions
-        function openSettings() {
-            const savedKey = localStorage.getItem('gemini_api_key') || '';
-            document.getElementById('api-key-input').value = savedKey;
+        async function openSettings() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                const localKey = localStorage.getItem('gemini_api_key') || '';
+                document.getElementById('api-key-input').value = localKey;
+                document.getElementById('fb-page-id-input').value = data.fb_page_id || '';
+                document.getElementById('fb-page-token-input').value = data.fb_page_access_token || '';
+            } catch (err) {
+                console.error("Error opening settings:", err);
+            }
             document.getElementById('settings-modal').classList.add('active');
         }
 
@@ -2013,28 +2077,30 @@
             document.getElementById('settings-modal').classList.remove('active');
         }
 
-        async function saveApiKey() {
+        async function saveAppConfig() {
             const apiKey = document.getElementById('api-key-input').value.trim();
-            if (!apiKey) {
-                toast('กรุณาป้อน API Key ให้ครบถ้วน', 'warning');
-                return;
-            }
+            const fbPageId = document.getElementById('fb-page-id-input').value.trim();
+            const fbPageToken = document.getElementById('fb-page-token-input').value.trim();
 
             try {
-                const response = await fetch('/api/save-key', {
+                const response = await fetch('/api/save-config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ api_key: apiKey })
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        fb_page_id: fbPageId,
+                        fb_page_access_token: fbPageToken
+                    })
                 });
                 
                 const data = await response.json();
                 if (data.success) {
-                    localStorage.setItem('gemini_api_key', apiKey);
-                    toast('บันทึก Gemini API Key สำเร็จแล้ว!', 'success');
+                    if (apiKey) localStorage.setItem('gemini_api_key', apiKey);
+                    toast('บันทึกตั้งค่าระบบเรียบร้อยแล้ว!', 'success');
                     closeSettings();
                     checkConfig(); // update badge UI
                 } else {
-                    throw new Error(data.error);
+                    throw new Error(data.error || 'Failed to save configuration');
                 }
             } catch (err) {
                 toast(`บันทึกไม่สำเร็จ: ${err.message}`, 'error');
@@ -2088,6 +2154,9 @@
         }
 
         // Open Idea Library Modal
+        let savedImages = [];
+        let activeLibraryTab = 'ideas';
+
         async function openLibrary() {
             document.getElementById('library-status-filter').value = 'ALL';
             document.getElementById('library-modal').classList.add('active');
@@ -2101,10 +2170,11 @@
             `;
             
             try {
+                await loadImagesList();
                 const response = await fetch('/api/saved-ideas');
                 savedLibraryIdeas = await response.json();
                 document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
-                renderLibraryItems();
+                switchLibraryTab('ideas');
             } catch (err) {
                 console.error("Error loading saved ideas:", err);
                 listContainer.innerHTML = `
@@ -2118,6 +2188,136 @@
 
         function closeLibrary() {
             document.getElementById('library-modal').classList.remove('active');
+        }
+
+        function switchLibraryTab(tab) {
+            activeLibraryTab = tab;
+            const ideasBtn = document.getElementById('tab-ideas-btn');
+            const imagesBtn = document.getElementById('tab-images-btn');
+            const ideasContent = document.getElementById('tab-ideas-content');
+            const imagesContent = document.getElementById('tab-images-content');
+            
+            if (tab === 'ideas') {
+                ideasBtn.className = 'btn btn-primary';
+                imagesBtn.className = 'btn btn-secondary';
+                ideasContent.style.display = 'flex';
+                imagesContent.style.display = 'none';
+                renderLibraryItems();
+            } else {
+                ideasBtn.className = 'btn btn-secondary';
+                imagesBtn.className = 'btn btn-primary';
+                ideasContent.style.display = 'none';
+                imagesContent.style.display = 'flex';
+                loadImagesList();
+            }
+        }
+
+        async function loadImagesList() {
+            try {
+                const res = await fetch('/api/images');
+                savedImages = await res.json();
+                renderImagesGrid();
+            } catch (err) {
+                console.error("Error loading images list:", err);
+            }
+        }
+
+        function renderImagesGrid() {
+            const grid = document.getElementById('images-grid');
+            const countSpan = document.getElementById('images-count');
+            countSpan.innerText = `จำนวนทั้งหมด: ${savedImages.length} รูป`;
+            
+            if (savedImages.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 10px;">
+                        <i class="fa-regular fa-image" style="font-size: 36px; margin-bottom: 10px; opacity: 0.5;"></i>
+                        <p style="font-size: 13px; font-weight: bold;">ยังไม่มีรูปภาพในคลัง</p>
+                        <p style="font-size: 11px;">กรุณาคลิกปุ่มอัปโหลดรูปภาพด้านบน หรือลากไฟล์ภาพมาวาง</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            savedImages.forEach(img => {
+                html += `
+                    <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f8fafc; display: flex; flex-direction: column; position: relative; transition: all 0.2s ease;">
+                        <div style="width: 100%; height: 90px; border-bottom: 1px solid #cbd5e1; position: relative;">
+                            <img src="${img.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div style="padding: 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+                            <span style="font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); display: block;" title="${escapeHtml(img.name)}">${escapeHtml(img.name)}</span>
+                            <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px;">${img.uploaded_at ? img.uploaded_at.split(' ')[0] : ''}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function updatePostImagePreview(ideaId, imgId) {
+            const previewContainer = document.getElementById(`post-img-preview-${ideaId}`);
+            const selectedImg = savedImages.find(img => img.id === imgId);
+            
+            if (selectedImg) {
+                previewContainer.innerHTML = `
+                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
+                        <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                `;
+            } else {
+                previewContainer.innerHTML = '';
+            }
+        }
+
+        async function handleImageFileSelected(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                await uploadImageFile(files[0]);
+            }
+        }
+
+        async function handleImageDrop(event) {
+            event.preventDefault();
+            document.getElementById('image-drag-zone').style.background = 'hsl(var(--primary) / 0.03)';
+            const files = event.dataTransfer.files;
+            if (files && files.length > 0) {
+                await uploadImageFile(files[0]);
+            }
+        }
+
+        async function uploadImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                toast('กรุณาเลือกไฟล์ที่เป็นรูปภาพเท่านั้น', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                try {
+                    toast('กำลังอัปโหลดรูปภาพความละเอียดสูง...', 'info');
+                    const response = await fetch('/api/images/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            data: base64Data
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        toast('อัปโหลดรูปภาพสำเร็จ!', 'success');
+                        await loadImagesList();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (err) {
+                    console.error("Error uploading image:", err);
+                    toast(`อัปโหลดรูปภาพล้มเหลว: ${err.message}`, 'error');
+                }
+            };
+            reader.readAsDataURL(file);
         }
 
         // Render library cards based on current status filter
@@ -2145,6 +2345,115 @@
             
             let html = '';
             filtered.forEach(item => {
+                let imageOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
+                savedImages.forEach(img => {
+                    imageOptions += `<option value="${img.id}" ${item.selected_image_id === img.id ? 'selected' : ''}>${escapeHtml(img.name)}</option>`;
+                });
+                
+                const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
+                const imgPreviewHtml = selectedImg ? `
+                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
+                        <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                ` : '';
+                
+                let scheduleControlHtml = '';
+                if (item.status === 'Scheduled') {
+                    scheduleControlHtml = `
+                        <div style="background-color: hsl(var(--primary) / 0.05); padding: 12px; border-radius: 8px; border: 1px solid hsl(var(--primary) / 0.2); margin-top: 10px;">
+                            <p style="font-size: 12.5px; font-weight: 700; color: hsl(var(--primary)); margin: 0 0 8px 0;">
+                                <i class="fa-solid fa-clock"></i> ตั้งเวลาโพสต์อัตโนมัติแล้ว: ${item.scheduled_time}
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="cancelPostSchedule('${item.id}')">
+                                    ยกเลิกคิวโพสต์
+                                </button>
+                                <button class="btn btn-primary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="publishNow('${item.id}')">
+                                    โพสต์ทันที (Publish Now)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.status === 'Used') {
+                    let fbLink = '';
+                    if (item.facebook_post_id) {
+                        const parts = item.facebook_post_id.split('_');
+                        const postId = parts.length > 1 ? parts[1] : parts[0];
+                        fbLink = `https://facebook.com/${postId}`;
+                    }
+                    scheduleControlHtml = `
+                        <div style="background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-top: 10px;">
+                            <p style="font-size: 12.5px; font-weight: 700; color: #166534; margin: 0;">
+                                <i class="fa-solid fa-circle-check"></i> โพสต์ขึ้นเพจสำเร็จแล้ว ${item.posted_at ? `เมื่อ ${item.posted_at}` : ''}
+                            </p>
+                            ${fbLink ? `
+                            <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--primary); font-weight: 700; text-decoration: none; margin-top: 6px;">
+                                <i class="fa-brands fa-facebook"></i> ลิงก์ไปยังโพสต์บน Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 10px;"></i>
+                            </a>
+                            ` : ''}
+                        </div>
+                    `;
+                } else if (item.status === 'Failed') {
+                    scheduleControlHtml = `
+                        <div style="background-color: #fef2f2; padding: 12px; border-radius: 8px; border: 1px solid #fca5a5; margin-top: 10px;">
+                            <p style="font-size: 12.5px; font-weight: 700; color: #991b1b; margin: 0 0 6px 0;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> โพสต์ล้มเหลว: ${escapeHtml(item.post_error)}
+                            </p>
+                            <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px 0;">โปรดตรวจสอบข้อมูล Access Token หรือเปิดให้ตั้งค่าโพสต์ใหม่อีกครั้ง</p>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="cancelPostSchedule('${item.id}')">
+                                    ล้างประวัติข้อผิดพลาด
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (item.status === 'Posting') {
+                    scheduleControlHtml = `
+                        <div style="background-color: #fffbeb; padding: 12px; border-radius: 8px; border: 1px solid #fde68a; margin-top: 10px;">
+                            <p style="font-size: 12.5px; font-weight: 700; color: #b45309; margin: 0;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> กำลังอัปโหลดและส่งโพสต์ไปยัง Facebook...
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    let defaultDateVal = '';
+                    if (item.scheduled_time) {
+                        defaultDateVal = item.scheduled_time.replace(' ', 'T');
+                    }
+                    
+                    scheduleControlHtml = `
+                        <div style="background-color: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                            <p style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin: 0;">
+                                <i class="fa-solid fa-paper-plane"></i> ตั้งค่าโพสต์อัตโนมัติ (Facebook Auto-Post)
+                            </p>
+                            
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">1. เลือกภาพประกอบ:</label>
+                                    <select id="post-img-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px;" onchange="updatePostImagePreview('${item.id}', this.value)">
+                                        ${imageOptions}
+                                    </select>
+                                    <div id="post-img-preview-${item.id}">${imgPreviewHtml}</div>
+                                </div>
+                                
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">2. วันที่และเวลาโพสต์ (Timeline):</label>
+                                    <input type="datetime-local" id="post-time-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px;" value="${defaultDateVal}">
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11.5px;" onclick="schedulePost('${item.id}')">
+                                    <i class="fa-solid fa-calendar-check"></i> อนุมัติ & ตั้งเวลาโพสต์
+                                </button>
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 11.5px; border-color: var(--primary); color: var(--primary); background: transparent;" onclick="publishNowDirect('${item.id}')">
+                                    <i class="fa-solid fa-share-from-square"></i> อนุมัติ & โพสต์ทันที
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 html += `
                     <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 10px; position: relative;">
                         <!-- Top header details -->
@@ -2172,12 +2481,16 @@
                         </div>
                         ` : ''}
                         
+                        <!-- Scheduling and Facebook Publish Controls -->
+                        ${scheduleControlHtml}
+                        
                         <!-- Footer action panel -->
                         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 10px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);"><i class="fa-regular fa-flag"></i> เปลี่ยนสถานะ:</span>
                                 <select class="form-input" style="padding: 4px 10px; font-size: 12px; width: 180px; font-weight: 600; height: 32px;" onchange="updateIdeaStatus('${item.id}', this.value)">
                                     <option value="Waiting List" ${item.status === 'Waiting List' ? 'selected' : ''}>⏳ Waiting List (รอโพสต์)</option>
+                                    <option value="Scheduled" ${item.status === 'Scheduled' ? 'selected' : ''}>📅 Scheduled (ตั้งเวลาโพสต์)</option>
                                     <option value="Used" ${item.status === 'Used' ? 'selected' : ''}>✅ Used (โพสต์แล้ว)</option>
                                     <option value="Interested" ${item.status === 'Interested' ? 'selected' : ''}>⭐ Interested (สนใจ)</option>
                                     <option value="Later" ${item.status === 'Later' ? 'selected' : ''}>📁 Later (ไว้ทีหลัง)</option>
@@ -2195,6 +2508,149 @@
                 `;
             });
             listContainer.innerHTML = html;
+        }
+
+        async function schedulePost(ideaId) {
+            const scheduledTimeInput = document.getElementById(`post-time-${ideaId}`).value;
+            const selectedImageId = document.getElementById(`post-img-${ideaId}`).value;
+            
+            if (!scheduledTimeInput) {
+                toast('กรุณาเลือกวันและเวลาที่ต้องการโพสต์', 'warning');
+                return;
+            }
+            
+            const formattedTime = scheduledTimeInput.replace('T', ' ') + ':00';
+            
+            try {
+                toast('กำลังบันทึกคิวการโพสต์...', 'info');
+                const response = await fetch('/api/schedule-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idea_id: ideaId,
+                        scheduled_time: formattedTime,
+                        selected_image_id: selectedImageId
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('อนุมัติ & ตั้งเวลาโพสต์สำเร็จ!', 'success');
+                    
+                    const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                    if (idea) {
+                        idea.status = 'Scheduled';
+                        idea.scheduled_time = formattedTime;
+                        idea.selected_image_id = selectedImageId;
+                        if (idea.post_error) delete idea.post_error;
+                    }
+                    renderLibraryItems();
+                } else {
+                    throw new Error(data.error || 'Failed to schedule');
+                }
+            } catch (err) {
+                console.error("Error scheduling post:", err);
+                toast(`ตั้งเวลาโพสต์ล้มเหลว: ${err.message}`, 'error');
+            }
+        }
+
+        async function cancelPostSchedule(ideaId) {
+            try {
+                toast('กำลังยกเลิกคิวโพสต์...', 'info');
+                const response = await fetch('/api/cancel-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idea_id: ideaId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('ยกเลิกคิวโพสต์เรียบร้อยแล้ว!', 'success');
+                    const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                    if (idea) {
+                        idea.status = 'Waiting List';
+                        idea.scheduled_time = '';
+                        if (idea.post_error) delete idea.post_error;
+                    }
+                    renderLibraryItems();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                console.error("Error canceling schedule:", err);
+                toast(`ยกเลิกคิวโพสต์ล้มเหลว: ${err.message}`, 'error');
+            }
+        }
+
+        async function publishNow(ideaId) {
+            if (!confirm('คุณแน่ใจว่าต้องการโพสต์ข่าวสารนี้ขึ้น Facebook Page ของคุณทันที?')) return;
+            
+            try {
+                toast('กำลังส่งโพสต์ไปยัง Facebook Page...', 'info');
+                const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                if (idea) idea.status = 'Posting';
+                renderLibraryItems();
+                
+                const response = await fetch('/api/publish-now', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idea_id: ideaId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('โพสต์ไปยัง Facebook Page สำเร็จแล้ว!', 'success');
+                    if (idea) {
+                        idea.status = 'Used';
+                        idea.facebook_post_id = data.post_id;
+                        idea.posted_at = new Date().toLocaleString();
+                        if (idea.post_error) delete idea.post_error;
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to post');
+                }
+            } catch (err) {
+                console.error("Error publishing now:", err);
+                toast(`โพสต์ขึ้นเพจล้มเหลว: ${err.message}`, 'error');
+                const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                if (idea) {
+                    idea.status = 'Failed';
+                    idea.post_error = err.message;
+                }
+            } finally {
+                renderLibraryItems();
+            }
+        }
+
+        async function publishNowDirect(ideaId) {
+            const selectedImageId = document.getElementById(`post-img-${ideaId}`).value;
+            const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+            if (idea) {
+                idea.selected_image_id = selectedImageId;
+            }
+            
+            try {
+                const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+                const response = await fetch('/api/schedule-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idea_id: ideaId,
+                        scheduled_time: nowStr,
+                        selected_image_id: selectedImageId
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    if (idea) {
+                        idea.scheduled_time = nowStr;
+                        idea.selected_image_id = selectedImageId;
+                    }
+                    await publishNow(ideaId);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                console.error("Error in publishNowDirect:", err);
+                toast(`โพสต์ล้มเหลว: ${err.message}`, 'error');
+            }
         }
 
         // Change Idea Status in backend
