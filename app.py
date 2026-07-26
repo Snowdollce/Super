@@ -505,7 +505,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         # Serve static HTML/JS/CSS from 'web' directory
         parsed_path = urllib.parse.urlparse(self.path)
-        rel_path = parsed_path.path.lstrip("/")
+        rel_path = urllib.parse.unquote(parsed_path.path.lstrip("/"))
         
         # If accessing the root, serve index.html
         if rel_path == "" or rel_path == "index.html":
