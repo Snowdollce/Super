@@ -2320,6 +2320,51 @@
             reader.readAsDataURL(file);
         }
 
+        async function uploadDirectImageForPost(ideaId, inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                toast('กรุณาเลือกไฟล์ที่เป็นรูปภาพเท่านั้น', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                try {
+                    toast('กำลังอัปโหลดรูปภาพความละเอียดสูงสำหรับโพสต์นี้...', 'info');
+                    const response = await fetch('/api/images/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: file.name,
+                            data: base64Data
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        toast('อัปโหลดและเลือกภาพให้เรียบร้อย!', 'success');
+                        
+                        await loadImagesList();
+                        
+                        const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                        if (idea) {
+                            idea.selected_image_id = data.image.id;
+                        }
+                        
+                        renderLibraryItems();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (err) {
+                    console.error("Error uploading direct image:", err);
+                    toast(`อัปโหลดรูปภาพล้มเหลว: ${err.message}`, 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
         // Render library cards based on current status filter
         function renderLibraryItems() {
             const listContainer = document.getElementById('library-content-list');
@@ -2429,10 +2474,16 @@
                             
                             <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
                                 <div style="flex: 1; min-width: 200px;">
-                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">1. เลือกภาพประกอบ:</label>
-                                    <select id="post-img-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px;" onchange="updatePostImagePreview('${item.id}', this.value)">
-                                        ${imageOptions}
-                                    </select>
+                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">1. เลือกหรืออัปโหลดภาพประกอบ:</label>
+                                    <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
+                                        <select id="post-img-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px; flex: 1;" onchange="updatePostImagePreview('${item.id}', this.value)">
+                                            ${imageOptions}
+                                        </select>
+                                        <input type="file" id="upload-direct-file-${item.id}" style="display: none;" accept="image/*" onchange="uploadDirectImageForPost('${item.id}', this)">
+                                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11.5px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('upload-direct-file-${item.id}').click()" title="อัปโหลดรูปภาพใหม่สำหรับโพสต์นี้">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดรูป
+                                        </button>
+                                    </div>
                                     <div id="post-img-preview-${item.id}">${imgPreviewHtml}</div>
                                 </div>
                                 
