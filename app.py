@@ -127,11 +127,9 @@ def load_config():
                     key, val = line.split("=", 1)
                     config[key.strip()] = val.strip()
                     
-    # Force fallback override for expired Render token
-    token = config.get("FB_PAGE_ACCESS_TOKEN", "").strip()
-    if token.startswith("EAAgnh6DxJrYBSFnKmc") or not token:
-        config["FB_PAGE_ID"] = "1228647806999414"
-        config["FB_PAGE_ACCESS_TOKEN"] = "EAAgnh6DxJrYBSJIUSwlEfOv6QlZBI0dUIDHZCX3yIhZBzpXpyARrBKzAI53MNuulZCjpal7mm17OyOeKrtSWcl9BvF06S1U9vNpe98Fh9ZAmZBo9LMdN7XnP4feeKZCzlT5gw2IklQaK5Si6ZCzxcxRYEg2aHEaG8lr80AZBK7ijbV5j4LpJ4jVpZAQ06yOO8Dlswjea1NQHVJE55UfJjxECXKZBiq1yLqeJng2yYdtZCOcZD"
+    # Force override for Render deployment to use the new permanent Page Access Token
+    config["FB_PAGE_ID"] = "1228647806999414"
+    config["FB_PAGE_ACCESS_TOKEN"] = "EAAgnh6DxJrYBSJIUSwlEfOv6QlZBI0dUIDHZCX3yIhZBzpXpyARrBKzAI53MNuulZCjpal7mm17OyOeKrtSWcl9BvF06S1U9vNpe98Fh9ZAmZBo9LMdN7XnP4feeKZCzlT5gw2IklQaK5Si6ZCzxcxRYEg2aHEaG8lr80AZBK7ijbV5j4LpJ4jVpZAQ06yOO8Dlswjea1NQHVJE55UfJjxECXKZBiq1yLqeJng2yYdtZCOcZD"
         
     return config
 
