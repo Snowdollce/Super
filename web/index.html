@@ -2404,11 +2404,24 @@
                 
                 let scheduleControlHtml = '';
                 if (item.status === 'Scheduled') {
+                    let fbLink = '';
+                    if (item.facebook_post_id) {
+                        const parts = item.facebook_post_id.split('_');
+                        const postId = parts.length > 1 ? parts[1] : parts[0];
+                        fbLink = `https://facebook.com/${postId}`;
+                    }
                     scheduleControlHtml = `
                         <div style="background-color: hsl(var(--primary) / 0.05); padding: 12px; border-radius: 8px; border: 1px solid hsl(var(--primary) / 0.2); margin-top: 10px;">
                             <p style="font-size: 12.5px; font-weight: 700; color: hsl(var(--primary)); margin: 0 0 8px 0;">
                                 <i class="fa-solid fa-clock"></i> ตั้งเวลาโพสต์อัตโนมัติแล้ว: ${item.scheduled_time}
                             </p>
+                            ${fbLink ? `
+                            <p style="margin: 0 0 8px 0;">
+                                <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--primary); font-weight: 700; text-decoration: none;">
+                                    <i class="fa-brands fa-facebook"></i> ลิงก์โพสต์ที่ตั้งเวลาบน Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 10px;"></i>
+                                </a>
+                            </p>
+                            ` : ''}
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="cancelPostSchedule('${item.id}')">
                                     ยกเลิกคิวโพสต์
@@ -2567,6 +2580,16 @@
             
             if (!scheduledTimeInput) {
                 toast('กรุณาเลือกวันและเวลาที่ต้องการโพสต์', 'warning');
+                return;
+            }
+            
+            const selectedTime = new Date(scheduledTimeInput);
+            const now = new Date();
+            const diffMs = selectedTime - now;
+            const diffMins = diffMs / 1000 / 60;
+            
+            if (diffMins < 10) {
+                toast('เวลาที่ตั้งล่วงหน้าต้องมากกว่าเวลาปัจจุบันอย่างน้อย 10 นาที (ตามข้อกำหนดของ Facebook)', 'warning');
                 return;
             }
             
