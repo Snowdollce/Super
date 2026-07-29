@@ -21,7 +21,7 @@ import re
 import hashlib
 import threading
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
 
 PORT = 5000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +68,62 @@ def save_config_keys_to_env(new_settings):
         f.writelines(lines)
     return True
 
+def cleanup_expired_ideas():
+    supabase = get_supabase_config()
+    if supabase:
+        url, key = supabase
+        five_days_ago = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M:%S")
+        req_url = f"{url}/rest/v1/saved_ideas?status=eq.Used&posted_at=lt.{urllib.parse.quote(five_days_ago)}"
+        req = urllib.request.Request(
+            req_url,
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}"
+            },
+            method="DELETE"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as res:
+                pass
+        except Exception as e:
+            print("Error cleaning up expired ideas from Supabase:", e)
+            
+    if os.path.exists(SAVED_IDEAS_FILE):
+        try:
+            with open(SAVED_IDEAS_FILE, "r", encoding="utf-8") as f:
+                ideas = json.load(f)
+            
+            now = datetime.now()
+            modified = False
+            remaining_ideas = []
+            for idea in ideas:
+                if idea.get("status") == "Used" and idea.get("posted_at"):
+                    try:
+                        posted_time = datetime.strptime(idea["posted_at"], "%Y-%m-%d %H:%M:%S")
+                        if now - posted_time >= timedelta(days=5):
+                            modified = True
+                            img_id = idea.get("selected_image_id")
+                            if img_id:
+                                img_path = os.path.join(DIRECTORY, "web", "uploads", img_id)
+                                if os.path.exists(img_path):
+                                    try:
+                                        os.remove(img_path)
+                                    except Exception as e:
+                                        print(f"Error removing expired image file {img_id}: {e}")
+                            print(f"[*] Auto-deleted expired posted idea: {idea.get('id')}")
+                            continue
+                    except Exception as e:
+                        print("Error parsing posted_at during cleanup:", e)
+                remaining_ideas.append(idea)
+                
+            if modified:
+                with open(SAVED_IDEAS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(remaining_ideas, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print("Error cleaning up expired ideas locally:", e)
+
 def load_saved_ideas():
+    cleanup_expired_ideas()
     supabase = get_supabase_config()
     if supabase:
         url, key = supabase
@@ -172,7 +227,10 @@ def update_saved_idea_status_supabase(idea_id, status):
         return False
     url, key = supabase
     req_url = f"{url}/rest/v1/saved_ideas?id=eq.{idea_id}"
-    payload = json.dumps({"status": status}).encode("utf-8")
+    update_data = {"status": status}
+    if status == "Used":
+        update_data["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    payload = json.dumps(update_data).encode("utf-8")
     req = urllib.request.Request(
         req_url,
         data=payload,
@@ -394,18 +452,24 @@ def upload_temp_photo_to_facebook(page_id, access_token, img_data, filename):
                 pass
         return False, f"Facebook Photo Upload error: {err_msg}"
 
-def schedule_to_facebook(idea, scheduled_time_str):
+def schedule_to_facebook(idea, scheduled_time_str, timestamp=None):
     config = load_config()
     page_id = config.get("FB_PAGE_ID", "").strip()
     access_token = config.get("FB_PAGE_ACCESS_TOKEN", "").strip()
     if not page_id or not access_token:
         return False, "Facebook Page ID or Access Token is missing in configuration."
         
-    try:
-        dt = datetime.strptime(scheduled_time_str, "%Y-%m-%d %H:%M:%S")
-        timestamp = int(dt.timestamp())
-    except Exception as e:
-        return False, f"Invalid date format: {e}"
+    if timestamp is None:
+        try:
+            dt = datetime.strptime(scheduled_time_str, "%Y-%m-%d %H:%M:%S")
+            timestamp = int(dt.timestamp())
+        except Exception as e:
+            return False, f"Invalid date format: {e}"
+    else:
+        try:
+            timestamp = int(timestamp)
+        except Exception as e:
+            return False, f"Invalid timestamp value: {e}"
         
     message = idea.get("content", "")
     image_id = idea.get("selected_image_id", "")
@@ -809,6 +873,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             idea_id = req_data.get("idea_id", "").strip()
             scheduled_time = req_data.get("scheduled_time", "").strip()
             selected_image_id = req_data.get("selected_image_id", "").strip()
+            timestamp = req_data.get("timestamp")
             
             if not idea_id or not scheduled_time:
                 self.send_response(400)
@@ -832,7 +897,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     idea["scheduled_time"] = scheduled_time
                     idea["selected_image_id"] = selected_image_id
                     
-                    fb_success, fb_res = schedule_to_facebook(idea, scheduled_time)
+                    fb_success, fb_res = schedule_to_facebook(idea, scheduled_time, timestamp=timestamp)
                     if fb_success:
                         idea["status"] = "Scheduled"
                         idea["facebook_post_id"] = fb_res
@@ -906,6 +971,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == "/api/publish-now":
             idea_id = req_data.get("idea_id", "").strip()
+            selected_image_id = req_data.get("selected_image_id", "").strip()
             
             if not idea_id:
                 self.send_response(400)
@@ -919,6 +985,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             for idea in ideas:
                 if idea["id"] == idea_id:
                     target_idea = idea
+                    if selected_image_id:
+                        idea["selected_image_id"] = selected_image_id
                     break
                     
             if not target_idea:
@@ -1007,6 +1075,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 for idea in ideas:
                     if idea["id"] == idea_id:
                         idea["status"] = status
+                        if status == "Used" and not idea.get("posted_at"):
+                            idea["posted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         success = True
                         break
                 if success:

@@ -1251,6 +1251,69 @@
                 width: 100% !important;
             }
         }
+
+        /* Category Shortcuts Styling */
+        .category-shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .category-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 12px;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        
+        .category-card:hover {
+            transform: translateY(-3px);
+            background: hsl(var(--primary) / 0.03);
+            border-color: var(--primary);
+            box-shadow: 0 8px 20px rgba(0, 85, 255, 0.08);
+        }
+        
+        .category-card-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.4;
+        }
+        
+        .category-card-count {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 700;
+            align-self: flex-end;
+            background: hsl(var(--primary) / 0.08);
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        
+        .category-section-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 20px 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid hsl(var(--primary) / 0.1);
+            padding-bottom: 6px;
+        }
     </style>
 </head>
 <body>
@@ -1369,6 +1432,9 @@
                 <button id="tab-images-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('images')">
                     <i class="fa-solid fa-images"></i> คลังรูปภาพประกอบ
                 </button>
+                <button id="tab-archive-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('archive')">
+                    <i class="fa-solid fa-box-archive"></i> ประวัติโพสต์แล้ว (เก็บ 5 วัน)
+                </button>
             </div>
 
             <!-- Ideas Tab Content -->
@@ -1377,11 +1443,10 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองสถานะ:</span>
-                        <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="renderLibraryItems()">
+                        <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="handleLibraryDropdownChange(this.value)">
                             <option value="ALL">ทั้งหมด</option>
                             <option value="Waiting List">⏳ Waiting List (รอคิวโพสต์)</option>
                             <option value="Scheduled">📅 Scheduled (ตั้งเวลาโพสต์)</option>
-                            <option value="Used">✅ Used (โพสต์ไปแล้ว)</option>
                             <option value="Failed">❌ Failed (โพสต์ไม่สำเร็จ)</option>
                             <option value="Interested">⭐ Interested (น่าสนใจ/ร่างไว)</option>
                             <option value="Later">📁 Later (ไว้โพสต์ทีหลัง)</option>
@@ -1422,6 +1487,20 @@
                 <!-- Images Grid -->
                 <div id="images-grid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 5px 0;">
                     <!-- Loaded images will render here -->
+                </div>
+            </div>
+
+            <!-- Archive Tab Content (Hidden by default) -->
+            <div id="tab-archive-content" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+                <!-- Stats row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);"><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> โพสต์ที่โพสต์เสร็จสมบูรณ์แล้วจะเก็บไว้ที่นี่ 5 วันก่อนลบออกโดยอัตโนมัติ</span>
+                    <span id="archive-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
+                </div>
+                
+                <!-- Archive content list (scrollable) -->
+                <div id="archive-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Loaded archive items will render here -->
                 </div>
             </div>
         </div>
@@ -1480,6 +1559,8 @@
         }
 
         let savedLibraryIdeas = [];
+        let selectedCategoryFilter = null;
+        let selectedStatusFilter = null;
 
         async function updateLibraryBadge() {
             try {
@@ -2158,6 +2239,8 @@
         let activeLibraryTab = 'ideas';
 
         async function openLibrary() {
+            selectedCategoryFilter = null;
+            selectedStatusFilter = null;
             document.getElementById('library-status-filter').value = 'ALL';
             document.getElementById('library-modal').classList.add('active');
             
@@ -2194,21 +2277,26 @@
             activeLibraryTab = tab;
             const ideasBtn = document.getElementById('tab-ideas-btn');
             const imagesBtn = document.getElementById('tab-images-btn');
+            const archiveBtn = document.getElementById('tab-archive-btn');
+            
             const ideasContent = document.getElementById('tab-ideas-content');
             const imagesContent = document.getElementById('tab-images-content');
+            const archiveContent = document.getElementById('tab-archive-content');
+            
+            ideasBtn.className = tab === 'ideas' ? 'btn btn-primary' : 'btn btn-secondary';
+            imagesBtn.className = tab === 'images' ? 'btn btn-primary' : 'btn btn-secondary';
+            archiveBtn.className = tab === 'archive' ? 'btn btn-primary' : 'btn btn-secondary';
+            
+            ideasContent.style.display = tab === 'ideas' ? 'flex' : 'none';
+            imagesContent.style.display = tab === 'images' ? 'flex' : 'none';
+            archiveContent.style.display = tab === 'archive' ? 'flex' : 'none';
             
             if (tab === 'ideas') {
-                ideasBtn.className = 'btn btn-primary';
-                imagesBtn.className = 'btn btn-secondary';
-                ideasContent.style.display = 'flex';
-                imagesContent.style.display = 'none';
                 renderLibraryItems();
-            } else {
-                ideasBtn.className = 'btn btn-secondary';
-                imagesBtn.className = 'btn btn-primary';
-                ideasContent.style.display = 'none';
-                imagesContent.style.display = 'flex';
+            } else if (tab === 'images') {
                 loadImagesList();
+            } else if (tab === 'archive') {
+                renderArchiveItems();
             }
         }
 
@@ -2365,30 +2453,202 @@
             reader.readAsDataURL(file);
         }
 
-        // Render library cards based on current status filter
+        function handleLibraryDropdownChange(val) {
+            if (val === 'ALL') {
+                selectedStatusFilter = null;
+                selectedCategoryFilter = 'ALL';
+            } else {
+                selectedStatusFilter = val;
+                selectedCategoryFilter = null;
+            }
+            renderLibraryItems();
+        }
+
+        // Helper to clear filters and go back to categories
+        function clearLibraryFilters() {
+            selectedCategoryFilter = null;
+            selectedStatusFilter = null;
+            renderLibraryItems();
+        }
+
+        // Render library cards based on current status or category filter
         function renderLibraryItems() {
             const listContainer = document.getElementById('library-content-list');
-            const filterVal = document.getElementById('library-status-filter').value;
             
-            let filtered = savedLibraryIdeas;
-            if (filterVal !== 'ALL') {
-                filtered = savedLibraryIdeas.filter(item => item.status === filterVal);
-            }
+            // Filter out 'Used' status from the main ideas tab
+            const activeIdeas = savedLibraryIdeas.filter(item => item.status !== 'Used');
             
-            document.getElementById('library-count').innerText = `จำนวนที่แสดง: ${filtered.length} / ทั้งหมด ${savedLibraryIdeas.length} รายการ`;
-            
-            if (filtered.length === 0) {
+            // If no filter is active, show the Category & Status Shortcuts Grid
+            if (selectedCategoryFilter === null && selectedStatusFilter === null) {
+                // Hide status filter dropdown parent wrapper since we are in shortcut dashboard mode
+                document.getElementById('library-status-filter').parentElement.style.display = 'none';
+                document.getElementById('library-count').innerText = `ไอเดียพร้อมใช้งานทั้งหมด: ${activeIdeas.length} รายการ`;
+                
+                // Group ideas by category dynamically
+                const categoryCounts = {};
+                activeIdeas.forEach(item => {
+                    const cat = item.news_category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
+                    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+                });
+                
+                // Count active ideas by status
+                const statusCounts = {
+                    'Waiting List': 0,
+                    'Scheduled': 0,
+                    'Failed': 0,
+                    'Interested': 0,
+                    'Later': 0
+                };
+                activeIdeas.forEach(item => {
+                    if (statusCounts[item.status] !== undefined) {
+                        statusCounts[item.status]++;
+                    }
+                });
+                
+                // Render category cards HTML
+                let categoryCardsHtml = '';
+                const sortedCategories = Object.keys(categoryCounts).sort();
+                
+                // Add a default "ทั้งหมด" card
+                categoryCardsHtml += `
+                    <div class="category-card" onclick="selectedCategoryFilter = 'ALL'; renderLibraryItems();">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-folder-open" style="color: var(--primary); font-size: 16px; margin-top: 2px;"></i>
+                            <span>แสดงไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)</span>
+                        </div>
+                        <span class="category-card-count">${activeIdeas.length} ไอเดีย</span>
+                    </div>
+                `;
+                
+                sortedCategories.forEach(cat => {
+                    let icon = 'fa-solid fa-folder';
+                    if (cat.includes('🤖') || cat.includes('โมเดล') || cat.includes('เทคโนโลยี')) icon = 'fa-solid fa-robot';
+                    else if (cat.includes('💡') || cat.includes('นวัตกรรม') || cat.includes('ข่าวสาร')) icon = 'fa-solid fa-lightbulb';
+                    else if (cat.includes('📈') || cat.includes('ธุรกิจ') || cat.includes('ลงทุน')) icon = 'fa-solid fa-chart-line';
+                    else if (cat.includes('⚙️') || cat.includes('ระบบ') || cat.includes('การทำงาน')) icon = 'fa-solid fa-gears';
+                    
+                    categoryCardsHtml += `
+                        <div class="category-card" onclick="selectedCategoryFilter = '${cat.replace(/'/g, "\\'")}'; renderLibraryItems();">
+                            <div class="category-card-title">
+                                <i class="${icon}" style="color: var(--primary); font-size: 16px; margin-top: 2px;"></i>
+                                <span>${escapeHtml(cat)}</span>
+                            </div>
+                            <span class="category-card-count">${categoryCounts[cat]} ไอเดีย</span>
+                        </div>
+                    `;
+                });
+                
+                // Render status cards HTML
+                let statusCardsHtml = `
+                    <div class="category-card" onclick="selectedStatusFilter = 'Waiting List'; renderLibraryItems();" style="border-left: 4px solid var(--text-muted);">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-hourglass-half" style="color: var(--text-muted); font-size: 16px;"></i>
+                            <span>⏳ Waiting List (รอคิวโพสต์)</span>
+                        </div>
+                        <span class="category-card-count">${statusCounts['Waiting List']} ไอเดีย</span>
+                    </div>
+                    <div class="category-card" onclick="selectedStatusFilter = 'Scheduled'; renderLibraryItems();" style="border-left: 4px solid var(--primary);">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-clock" style="color: var(--primary); font-size: 16px;"></i>
+                            <span>📅 Scheduled (ตั้งเวลาโพสต์)</span>
+                        </div>
+                        <span class="category-card-count">${statusCounts['Scheduled']} ไอเดีย</span>
+                    </div>
+                    <div class="category-card" onclick="selectedStatusFilter = 'Failed'; renderLibraryItems();" style="border-left: 4px solid var(--danger);">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-circle-exclamation" style="color: var(--danger); font-size: 16px;"></i>
+                            <span>❌ Failed (โพสต์ล้มเหลว)</span>
+                        </div>
+                        <span class="category-card-count">${statusCounts['Failed']} ไอเดีย</span>
+                    </div>
+                    <div class="category-card" onclick="selectedStatusFilter = 'Interested'; renderLibraryItems();" style="border-left: 4px solid #eab308;">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-star" style="color: #eab308; font-size: 16px;"></i>
+                            <span>⭐ Interested (ร่าง/สนใจ)</span>
+                        </div>
+                        <span class="category-card-count">${statusCounts['Interested']} ไอเดีย</span>
+                    </div>
+                    <div class="category-card" onclick="selectedStatusFilter = 'Later'; renderLibraryItems();" style="border-left: 4px solid #64748b;">
+                        <div class="category-card-title">
+                            <i class="fa-solid fa-box-archive" style="color: #64748b; font-size: 16px;"></i>
+                            <span>📁 Later (ไว้โพสต์ทีหลัง)</span>
+                        </div>
+                        <span class="category-card-count">${statusCounts['Later']} ไอเดีย</span>
+                    </div>
+                `;
+                
                 listContainer.innerHTML = `
-                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
-                        <i class="fa-regular fa-folder-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
-                        <p style="font-size: 14px; font-weight: bold;">ไม่พบรายการโพสต์ในหมวดหมู่นี้</p>
-                        <p style="font-size: 12px; margin-top: 4px;">คุณสามารถบันทึกไอเดียโพสต์จากหน้าวิเคราะห์ข่าวสารได้ตลอดเวลา</p>
+                    <div style="margin-bottom: 20px;">
+                        <div class="category-section-title">
+                            <i class="fa-solid fa-tags"></i> เลือกดูตามประเภทไอเดีย (Category Shortcuts)
+                        </div>
+                        <div class="category-shortcut-grid">
+                            ${categoryCardsHtml}
+                        </div>
+                        
+                        <div class="category-section-title">
+                            <i class="fa-solid fa-filter"></i> เลือกดูตามสถานะโพสต์ (Status Shortcuts)
+                        </div>
+                        <div class="category-shortcut-grid">
+                            ${statusCardsHtml}
+                        </div>
                     </div>
                 `;
                 return;
             }
             
-            let html = '';
+            // If filter is active, show the filtered list
+            document.getElementById('library-status-filter').parentElement.style.display = 'flex';
+            
+            let filtered = activeIdeas;
+            let currentFilterTitle = "";
+            
+            if (selectedCategoryFilter !== null) {
+                if (selectedCategoryFilter !== 'ALL') {
+                    filtered = activeIdeas.filter(item => (item.news_category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป') === selectedCategoryFilter);
+                    currentFilterTitle = `ประเภทไอเดีย: ${selectedCategoryFilter}`;
+                } else {
+                    currentFilterTitle = "ไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)";
+                }
+            } else if (selectedStatusFilter !== null) {
+                filtered = activeIdeas.filter(item => item.status === selectedStatusFilter);
+                currentFilterTitle = `สถานะโพสต์: ${selectedStatusFilter}`;
+            }
+            
+            // Synchronize status filter dropdown value
+            if (selectedStatusFilter !== null) {
+                document.getElementById('library-status-filter').value = selectedStatusFilter;
+            } else {
+                document.getElementById('library-status-filter').value = 'ALL';
+            }
+            
+            // Render back navigation header
+            let navigationHeaderHtml = `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: hsl(var(--primary) / 0.04); padding: 12px 18px; border-radius: 10px; border: 1px solid hsl(var(--primary) / 0.1); margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="btn btn-secondary" onclick="clearLibraryFilters()" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px;">
+                            <i class="fa-solid fa-arrow-left"></i> ย้อนกลับไปหมวดหมู่
+                        </button>
+                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">${escapeHtml(currentFilterTitle)}</span>
+                    </div>
+                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-muted);">พบทั้งหมด: ${filtered.length} รายการ</span>
+                </div>
+            `;
+            
+            document.getElementById('library-count').innerText = `จำนวนที่แสดง: ${filtered.length} / ทั้งหมด ${savedLibraryIdeas.length} รายการ`;
+            
+            if (filtered.length === 0) {
+                listContainer.innerHTML = navigationHeaderHtml + `
+                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
+                        <i class="fa-regular fa-folder-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <p style="font-size: 14px; font-weight: bold;">ไม่พบรายการโพสต์ในหมวดหมู่นี้</p>
+                        <p style="font-size: 12px; margin-top: 4px;">คุณสามารถเลือกบันทึกไอเดียใหม่เพื่อแสดงผลในหมวดหมู่นี้</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = navigationHeaderHtml;
             filtered.forEach(item => {
                 let imageOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
                 savedImages.forEach(img => {
@@ -2603,6 +2863,7 @@
                     body: JSON.stringify({
                         idea_id: ideaId,
                         scheduled_time: formattedTime,
+                        timestamp: Math.floor(selectedTime.getTime() / 1000),
                         selected_image_id: selectedImageId
                     })
                 });
@@ -2700,30 +2961,43 @@
                 idea.selected_image_id = selectedImageId;
             }
             
+            if (!confirm('คุณแน่ใจว่าต้องการโพสต์ข่าวสารนี้ขึ้น Facebook Page ของคุณทันที?')) return;
+            
             try {
-                const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
-                const response = await fetch('/api/schedule-post', {
+                toast('กำลังส่งโพสต์ไปยัง Facebook Page...', 'info');
+                if (idea) idea.status = 'Posting';
+                renderLibraryItems();
+                
+                const response = await fetch('/api/publish-now', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         idea_id: ideaId,
-                        scheduled_time: nowStr,
                         selected_image_id: selectedImageId
                     })
                 });
                 const data = await response.json();
                 if (data.success) {
+                    toast('โพสต์ไปยัง Facebook Page สำเร็จแล้ว!', 'success');
                     if (idea) {
-                        idea.scheduled_time = nowStr;
-                        idea.selected_image_id = selectedImageId;
+                        idea.status = 'Used';
+                        idea.facebook_post_id = data.post_id;
+                        idea.posted_at = new Date().toLocaleString();
+                        if (idea.post_error) delete idea.post_error;
                     }
-                    await publishNow(ideaId);
                 } else {
-                    throw new Error(data.error);
+                    throw new Error(data.error || 'Failed to post');
                 }
             } catch (err) {
                 console.error("Error in publishNowDirect:", err);
                 toast(`โพสต์ล้มเหลว: ${err.message}`, 'error');
+                const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                if (idea) {
+                    idea.status = 'Failed';
+                    idea.post_error = err.message;
+                }
+            } finally {
+                renderLibraryItems();
             }
         }
 
@@ -2739,8 +3013,17 @@
                 if (data.success) {
                     toast('อัปเดตสถานะโพสต์เรียบร้อย!', 'success');
                     const idea = savedLibraryIdeas.find(i => i.id === id);
-                    if (idea) idea.status = newStatus;
-                    renderLibraryItems();
+                    if (idea) {
+                        idea.status = newStatus;
+                        if (newStatus === 'Used' && !idea.posted_at) {
+                            idea.posted_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+                        }
+                    }
+                    if (activeLibraryTab === 'ideas') {
+                        renderLibraryItems();
+                    } else if (activeLibraryTab === 'archive') {
+                        renderArchiveItems();
+                    }
                 }
             } catch (err) {
                 console.error("Error updating idea status:", err);
@@ -2763,7 +3046,11 @@
                     toast('ลบโพสต์ออกจากคลังสำเร็จ!', 'success');
                     savedLibraryIdeas = savedLibraryIdeas.filter(i => i.id !== id);
                     document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
-                    renderLibraryItems();
+                    if (activeLibraryTab === 'ideas') {
+                        renderLibraryItems();
+                    } else if (activeLibraryTab === 'archive') {
+                        renderArchiveItems();
+                    }
                 }
             } catch (err) {
                 console.error("Error deleting saved idea:", err);
@@ -2783,6 +3070,125 @@
                 .catch(err => {
                     toast('คัดลอกล้มเหลว', 'error');
                 });
+        }
+
+        function getRemainingTimeText(postedAtStr) {
+            if (!postedAtStr) return "ไม่ระบุเวลา";
+            const cleanStr = postedAtStr.replace(' ', 'T');
+            const postedDate = new Date(cleanStr);
+            if (isNaN(postedDate.getTime())) return "ไม่ระบุเวลา";
+            
+            const deleteDate = new Date(postedDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+            const now = new Date();
+            const diffMs = deleteDate - now;
+            
+            if (diffMs <= 0) {
+                return '<span style="color: var(--danger); font-weight: 700;"><i class="fa-solid fa-trash-can"></i> กำลังรอคิวลบอัตโนมัติ...</span>';
+            }
+            
+            const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+            const diffHrs = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+            const diffMins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+            
+            let text = '<i class="fa-solid fa-hourglass-half"></i> เหลือเวลาเก็บ: ';
+            if (diffDays > 0) text += `${diffDays} วัน `;
+            if (diffHrs > 0 || diffDays > 0) text += `${diffHrs} ชม. `;
+            text += `${diffMins} นาที`;
+            return `<span style="color: var(--text-muted); font-weight: 600;">${text}</span>`;
+        }
+
+        function renderArchiveItems() {
+            const listContainer = document.getElementById('archive-content-list');
+            const archiveIdeas = savedLibraryIdeas.filter(item => item.status === 'Used');
+            
+            document.getElementById('archive-count').innerText = `จำนวนประวัติทั้งหมด: ${archiveIdeas.length} รายการ`;
+            
+            if (archiveIdeas.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
+                        <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <p style="font-size: 14px; font-weight: bold;">ไม่มีโพสต์ที่เสร็จสมบูรณ์ในคลังเก็บ</p>
+                        <p style="font-size: 12px; margin-top: 4px;">เมื่อมีข่าวสารได้รับการแชร์ลงเพจแล้ว ข้อมูลจะมาปรากฏและจัดเก็บที่นี่ชั่วคราวเป็นเวลา 5 วัน</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            archiveIdeas.forEach(item => {
+                const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
+                const imgPreviewHtml = selectedImg ? `
+                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
+                        <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                ` : '';
+                
+                let fbLink = '';
+                if (item.facebook_post_id) {
+                    const parts = item.facebook_post_id.split('_');
+                    const postId = parts.length > 1 ? parts[1] : parts[0];
+                    fbLink = `https://facebook.com/${postId}`;
+                }
+                
+                html += `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 10px; position: relative;">
+                        <!-- Top header details -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                            <div>
+                                <span class="category-tag" style="margin-bottom: 6px; font-size: 10px; display: inline-block;">${escapeHtml(item.news_category)}</span>
+                                <h4 style="font-size: 14px; font-weight: 800; line-height: 1.4; color: var(--text-main);">
+                                    <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                        <i class="fa-solid fa-link" style="font-size: 11px;"></i> ${escapeHtml(item.news_title)}
+                                    </a>
+                                </h4>
+                            </div>
+                            <button class="modal-close" style="color: var(--danger); font-size: 15px; padding: 4px; background: none; border: none; cursor: pointer; transition: var(--transition);" onclick="deleteIdea('${item.id}')" title="ลบถาวร">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Post content body -->
+                        <div class="fb-post-body" style="font-size: 13px; background-color: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #f1f5f9; white-space: pre-wrap; font-family: var(--font-family); color: #1c1e21; line-height: 1.6;">${escapeHtml(item.content)}</div>
+                        
+                        <!-- Image Preview -->
+                        ${imgPreviewHtml}
+                        
+                        <!-- Auto-delete alert and FB post link -->
+                        <div style="background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <p style="font-size: 12.5px; font-weight: 700; color: #166534; margin: 0;">
+                                    <i class="fa-solid fa-circle-check"></i> โพสต์สำเร็จแล้วเมื่อ: ${item.posted_at || 'ไม่ระบุ'}
+                                </p>
+                                <div style="margin-top: 4px; font-size: 11.5px;">
+                                    ${getRemainingTimeText(item.posted_at)}
+                                </div>
+                            </div>
+                            ${fbLink ? `
+                            <a href="${fbLink}" target="_blank" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 5px 10px; height: auto; text-decoration: none; font-weight: 700;">
+                                <i class="fa-brands fa-facebook"></i> ลิงก์โพสต์ Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 9px;"></i>
+                            </a>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Footer action panel -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);"><i class="fa-regular fa-flag"></i> เปลี่ยนสถานะ:</span>
+                                <select class="form-input" style="padding: 4px 10px; font-size: 12px; width: 180px; font-weight: 600; height: 32px;" onchange="updateIdeaStatus('${item.id}', this.value)">
+                                    <option value="Used" selected>✅ Used (โพสต์แล้ว)</option>
+                                    <option value="Waiting List">⏳ Waiting List (ย้ายกลับไปรอโพสต์)</option>
+                                    <option value="Scheduled">📅 Scheduled (ย้ายไปตั้งเวลา)</option>
+                                    <option value="Interested">⭐ Interested (สนใจ)</option>
+                                    <option value="Later">📁 Later (ไว้ทีหลัง)</option>
+                                </select>
+                            </div>
+                            
+                            <span style="font-size: 11px; color: var(--text-muted);">กู้คืนกลับไป รอโพสต์ ได้หากต้องการโพสต์ใหม่</span>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
         }
 
         // Utilities helper
