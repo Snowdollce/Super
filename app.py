@@ -758,6 +758,11 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             elif normalized_path.endswith(".svg"):
                 self.send_header("Content-Type", "image/svg+xml")
             
+            # Disable browser caching to ensure the user gets the latest code instantly
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            
             self.end_headers()
             with open(normalized_path, "rb") as f:
                 self.wfile.write(f.read())
@@ -767,6 +772,9 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if os.path.exists(fallback_path):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.send_header("Pragma", "no-cache")
+                self.send_header("Expires", "0")
                 self.end_headers()
                 with open(fallback_path, "rb") as f:
                     self.wfile.write(f.read())
