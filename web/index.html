@@ -2511,69 +2511,100 @@
                 
                 // Add a default "ทั้งหมด" card
                 categoryCardsHtml += `
-                    <div class="category-card" onclick="selectedCategoryFilter = 'ALL'; renderLibraryItems();">
+                    <div class="category-card" onclick="selectedCategoryFilter = 'ALL'; renderLibraryItems();" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-folder-open" style="color: var(--primary); font-size: 16px; margin-top: 2px;"></i>
-                            <span>แสดงไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)</span>
+                            <i class="fa-solid fa-folder-open" style="color: #16a34a; font-size: 16px; margin-top: 2px;"></i>
+                            <span style="color: #14532d; font-weight: bold;">แสดงไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)</span>
                         </div>
-                        <span class="category-card-count">${activeIdeas.length} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #16a34a; color: white;">${activeIdeas.length} ไอเดีย</span>
                     </div>
                 `;
                 
                 sortedCategories.forEach(cat => {
                     let icon = 'fa-solid fa-folder';
-                    if (cat.includes('🤖') || cat.includes('โมเดล') || cat.includes('เทคโนโลยี')) icon = 'fa-solid fa-robot';
-                    else if (cat.includes('💡') || cat.includes('นวัตกรรม') || cat.includes('ข่าวสาร')) icon = 'fa-solid fa-lightbulb';
-                    else if (cat.includes('📈') || cat.includes('ธุรกิจ') || cat.includes('ลงทุน')) icon = 'fa-solid fa-chart-line';
-                    else if (cat.includes('⚙️') || cat.includes('ระบบ') || cat.includes('การทำงาน')) icon = 'fa-solid fa-gears';
+                    let cardStyle = 'background: #f8fafc; border-color: #e2e8f0;';
+                    let iconColor = '#0055ff';
+                    let titleColor = 'var(--text-main)';
+                    let badgeStyle = 'background: hsl(var(--primary) / 0.08); color: var(--primary);';
+                    
+                    if (cat.includes('🤖') || cat.includes('โมเดล') || cat.includes('เทคโนโลยี')) {
+                        icon = 'fa-solid fa-robot';
+                        cardStyle = 'background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-color: #e9d5ff;';
+                        iconColor = '#9333ea';
+                        titleColor = '#581c87';
+                        badgeStyle = 'background: #9333ea; color: white;';
+                    } else if (cat.includes('💡') || cat.includes('นวัตกรรม') || cat.includes('ข่าวสาร')) {
+                        icon = 'fa-solid fa-lightbulb';
+                        cardStyle = 'background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fde68a;';
+                        iconColor = '#d97706';
+                        titleColor = '#78350f';
+                        badgeStyle = 'background: #d97706; color: white;';
+                    } else if (cat.includes('📈') || cat.includes('ธุรกิจ') || cat.includes('ลงทุน')) {
+                        icon = 'fa-solid fa-chart-line';
+                        cardStyle = 'background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); border-color: #99f6e4;';
+                        iconColor = '#0d9488';
+                        titleColor = '#115e59';
+                        badgeStyle = 'background: #0d9488; color: white;';
+                    } else if (cat.includes('⚙️') || cat.includes('ระบบ') || cat.includes('การทำงาน')) {
+                        icon = 'fa-solid fa-gears';
+                        cardStyle = 'background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-color: #cbd5e1;';
+                        iconColor = '#475569';
+                        titleColor = '#1e293b';
+                        badgeStyle = 'background: #475569; color: white;';
+                    } else {
+                        cardStyle = 'background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-color: #ffc9c9;';
+                        iconColor = '#fa5252';
+                        titleColor = '#c92a2a';
+                        badgeStyle = 'background: #fa5252; color: white;';
+                    }
                     
                     categoryCardsHtml += `
-                        <div class="category-card" onclick="selectedCategoryFilter = '${cat.replace(/'/g, "\\'")}'; renderLibraryItems();">
+                        <div class="category-card" onclick="selectedCategoryFilter = '${cat.replace(/'/g, "\\'")}'; renderLibraryItems();" style="${cardStyle}">
                             <div class="category-card-title">
-                                <i class="${icon}" style="color: var(--primary); font-size: 16px; margin-top: 2px;"></i>
-                                <span>${escapeHtml(cat)}</span>
+                                <i class="${icon}" style="color: ${iconColor}; font-size: 16px; margin-top: 2px;"></i>
+                                <span style="color: ${titleColor}; font-weight: bold;">${escapeHtml(cat)}</span>
                             </div>
-                            <span class="category-card-count">${categoryCounts[cat]} ไอเดีย</span>
+                            <span class="category-card-count" style="${badgeStyle}">${categoryCounts[cat]} ไอเดีย</span>
                         </div>
                     `;
                 });
                 
                 // Render status cards HTML
                 let statusCardsHtml = `
-                    <div class="category-card" onclick="selectedStatusFilter = 'Waiting List'; renderLibraryItems();" style="border-left: 4px solid var(--text-muted);">
+                    <div class="category-card" onclick="selectedStatusFilter = 'Waiting List'; renderLibraryItems();" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-color: #cbd5e1; border-left: 5px solid #64748b;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-hourglass-half" style="color: var(--text-muted); font-size: 16px;"></i>
-                            <span>⏳ Waiting List (รอคิวโพสต์)</span>
+                            <i class="fa-solid fa-hourglass-half" style="color: #64748b; font-size: 16px;"></i>
+                            <span style="color: #334155; font-weight: bold;">⏳ Waiting List (รอคิวโพสต์)</span>
                         </div>
-                        <span class="category-card-count">${statusCounts['Waiting List']} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #64748b; color: white;">${statusCounts['Waiting List']} ไอเดีย</span>
                     </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Scheduled'; renderLibraryItems();" style="border-left: 4px solid var(--primary);">
+                    <div class="category-card" onclick="selectedStatusFilter = 'Scheduled'; renderLibraryItems();" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #bfdbfe; border-left: 5px solid #2563eb;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-clock" style="color: var(--primary); font-size: 16px;"></i>
-                            <span>📅 Scheduled (ตั้งเวลาโพสต์)</span>
+                            <i class="fa-solid fa-clock" style="color: #2563eb; font-size: 16px;"></i>
+                            <span style="color: #1e3a8a; font-weight: bold;">📅 Scheduled (ตั้งเวลาโพสต์)</span>
                         </div>
-                        <span class="category-card-count">${statusCounts['Scheduled']} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #2563eb; color: white;">${statusCounts['Scheduled']} ไอเดีย</span>
                     </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Failed'; renderLibraryItems();" style="border-left: 4px solid var(--danger);">
+                    <div class="category-card" onclick="selectedStatusFilter = 'Failed'; renderLibraryItems();" style="background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-color: #ffc9c9; border-left: 5px solid #e03131;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-circle-exclamation" style="color: var(--danger); font-size: 16px;"></i>
-                            <span>❌ Failed (โพสต์ล้มเหลว)</span>
+                            <i class="fa-solid fa-circle-exclamation" style="color: #e03131; font-size: 16px;"></i>
+                            <span style="color: #2b0000; font-weight: bold;">❌ Failed (โพสต์ล้มเหลว)</span>
                         </div>
-                        <span class="category-card-count">${statusCounts['Failed']} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #e03131; color: white;">${statusCounts['Failed']} ไอเดีย</span>
                     </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Interested'; renderLibraryItems();" style="border-left: 4px solid #eab308;">
+                    <div class="category-card" onclick="selectedStatusFilter = 'Interested'; renderLibraryItems();" style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); border-color: #fbcfe8; border-left: 5px solid #db2777;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-star" style="color: #eab308; font-size: 16px;"></i>
-                            <span>⭐ Interested (ร่าง/สนใจ)</span>
+                            <i class="fa-solid fa-star" style="color: #db2777; font-size: 16px;"></i>
+                            <span style="color: #831843; font-weight: bold;">⭐ Interested (ร่าง/สนใจ)</span>
                         </div>
-                        <span class="category-card-count">${statusCounts['Interested']} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #db2777; color: white;">${statusCounts['Interested']} ไอเดีย</span>
                     </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Later'; renderLibraryItems();" style="border-left: 4px solid #64748b;">
+                    <div class="category-card" onclick="selectedStatusFilter = 'Later'; renderLibraryItems();" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0; border-left: 5px solid #16a34a;">
                         <div class="category-card-title">
-                            <i class="fa-solid fa-box-archive" style="color: #64748b; font-size: 16px;"></i>
-                            <span>📁 Later (ไว้โพสต์ทีหลัง)</span>
+                            <i class="fa-solid fa-box-archive" style="color: #16a34a; font-size: 16px;"></i>
+                            <span style="color: #14532d; font-weight: bold;">📁 Later (ไว้โพสต์ทีหลัง)</span>
                         </div>
-                        <span class="category-card-count">${statusCounts['Later']} ไอเดีย</span>
+                        <span class="category-card-count" style="background: #16a34a; color: white;">${statusCounts['Later']} ไอเดีย</span>
                     </div>
                 `;
                 
