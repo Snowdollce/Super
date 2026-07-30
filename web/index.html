@@ -2815,6 +2815,7 @@
                 console.error("Error scheduling post:", err);
                 toast(`ตั้งเวลาโพสต์ล้มเหลว: ${err.message}`, 'error');
             }
+        }
 
 
         async function cancelPostSchedule(ideaId) {
@@ -2955,6 +2956,7 @@
                     const idea = savedLibraryIdeas.find(i => i.id === id);
                     if (idea) {
                         idea.status = newStatus;
+                    }
                     if (activeLibraryTab === 'ideas') {
                         renderLibraryItems();
                     }
