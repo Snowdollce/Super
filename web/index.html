@@ -1877,12 +1877,23 @@
                         <div class="article-title-section">
                             <span class="category-tag">${escapeHtml(selectedArticle.category || 'ข่าวสาร AI')}</span>
                             <h2>${escapeHtml(selectedArticle.title_summary || selectedArticle.title)}</h2>
-                            <div class="article-actions-row">
+                            <div class="article-actions-row" style="margin-bottom: 12px;">
                                 <span><i class="fa-regular fa-clock"></i> วันที่: ${formatDateTime(selectedArticle.pubdate)}</span>
                                 <span>•</span>
-                                <a href="${selectedArticle.link}" target="_blank" class="article-link">
+                                <a href="${selectedArticle.link}" target="_blank" class="article-link" style="color: #ffffff; text-decoration: underline;">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i> อ่านข่าวต้นฉบับ
                                 </a>
+                            </div>
+                            
+                            <!-- News Summary Card (สรุปเนื้อหาข่าว) -->
+                            <div class="news-summary-box" style="background: rgba(255, 255, 255, 0.95); border-left: 5px solid var(--warning); border-radius: 8px; padding: 14px 18px; margin-top: 15px; color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                                <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; color: #0f172a; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-file-signature" style="color: var(--primary);"></i>
+                                    <span>สรุปเนื้อหาสำคัญของข่าวสาร (News Summary)</span>
+                                </div>
+                                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #334155; font-weight: 500;">
+                                    ${escapeHtml(selectedArticle.desc_summary || selectedArticle.desc || 'ไม่มีเนื้อหาสรุปของข่าวนี้')}
+                                </p>
                             </div>
                         </div>
                         
