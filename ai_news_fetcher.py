@@ -193,7 +193,7 @@ def summarize_batch_with_gemini(items, api_key):
     
     Guidelines:
     1. Translate the Title of each article into a clear, professional Thai headline. Keep it under 100 characters.
-    2. Summarize the Description/Content of each article into a single concise Thai bullet point (max 150 characters) focusing on the absolute key takeaway.
+    2. Summarize and explain the news of each article into a detailed Thai paragraph (3-4 sentences, approximately 300-400 characters) containing key details, background context, and the significance of the news to make it highly informative.
     3. Output the result strictly in JSON format as a list of objects with the keys "title_summary" and "desc_summary" in the exact same order as the input:
        [
          {{
