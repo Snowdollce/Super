@@ -1302,6 +1302,24 @@
             padding: 3px 10px;
             border-radius: 20px;
         }
+
+        .kanban-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
         
         .category-section-title {
             font-size: 14px;
@@ -1427,37 +1445,54 @@
             <!-- Tab Navigation -->
             <div style="display: flex; gap: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 10px;">
                 <button id="tab-ideas-btn" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('ideas')">
-                    <i class="fa-solid fa-book-bookmark"></i> ไอเดียโพสต์
+                    <i class="fa-solid fa-list-check"></i> บอร์ดคุมโพสต์ (Kanban)
                 </button>
                 <button id="tab-images-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('images')">
                     <i class="fa-solid fa-images"></i> คลังรูปภาพประกอบ
-                </button>
-                <button id="tab-archive-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; border-radius: 8px;" onclick="switchLibraryTab('archive')">
-                    <i class="fa-solid fa-box-archive"></i> ประวัติโพสต์แล้ว (เก็บ 5 วัน)
                 </button>
             </div>
 
             <!-- Ideas Tab Content -->
             <div id="tab-ideas-content" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
                 <!-- Filters & Stats row -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 12px;">
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองสถานะ:</span>
-                        <select id="library-status-filter" class="form-input" style="padding: 6px 12px; width: 220px; font-size: 13px; border-color: #cbd5e1;" onchange="handleLibraryDropdownChange(this.value)">
-                            <option value="ALL">ทั้งหมด</option>
-                            <option value="Waiting List">⏳ Waiting List (รอคิวโพสต์)</option>
-                            <option value="Scheduled">📅 Scheduled (ตั้งเวลาโพสต์)</option>
-                            <option value="Failed">❌ Failed (โพสต์ไม่สำเร็จ)</option>
-                            <option value="Interested">⭐ Interested (น่าสนใจ/ร่างไว)</option>
+                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);"><i class="fa-solid fa-filter"></i> ตัวกรองไอเดีย:</span>
+                        <select id="kanban-filter-dropdown" class="form-input" style="padding: 6px 12px; width: 250px; font-size: 13px; border-color: #cbd5e1; font-weight: 700;" onchange="handleKanbanFilterChange(this.value)">
+                            <option value="ALL">📋 แสดงไอเดียทั้งหมด (All idea)</option>
+                            <option value="Failed">❌ Failed (โพสต์ล้มเหลว)</option>
+                            <option value="Interested">⭐ Interested (ร่าง/สนใจ)</option>
                             <option value="Later">📁 Later (ไว้โพสต์ทีหลัง)</option>
                         </select>
                     </div>
                     <span id="library-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
                 </div>
                 
-                <!-- Library content list (scrollable) -->
-                <div id="library-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
-                    <!-- Loaded items will render here -->
+                <!-- Kanban Columns container -->
+                <div class="kanban-board" style="display: flex; gap: 15px; flex: 1; overflow-x: auto; padding-bottom: 10px; align-items: flex-start;">
+                    <!-- Column 1: Waiting List -->
+                    <div class="kanban-column" style="flex: 1; min-width: 320px; background-color: #f8fafc; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; max-height: calc(90vh - 220px); border: 1px solid #cbd5e1; box-shadow: var(--shadow-sm); height: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #64748b; padding-bottom: 8px; margin-bottom: 5px;">
+                            <h4 style="font-size: 13.5px; font-weight: 800; color: #475569; margin: 0;"><i class="fa-solid fa-hourglass-half"></i> Waiting List (<span id="waiting-count">0</span>)</h4>
+                        </div>
+                        <div id="cards-waiting" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding: 2px;"></div>
+                    </div>
+
+                    <!-- Column 2: Scheduled Post -->
+                    <div class="kanban-column" style="flex: 1; min-width: 320px; background-color: #eff6ff; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; max-height: calc(90vh - 220px); border: 1px solid #bfdbfe; box-shadow: var(--shadow-sm); height: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 5px;">
+                            <h4 style="font-size: 13.5px; font-weight: 800; color: #1e3a8a; margin: 0;"><i class="fa-solid fa-clock"></i> Scheduled Post (<span id="scheduled-count">0</span>)</h4>
+                        </div>
+                        <div id="cards-scheduled" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding: 2px;"></div>
+                    </div>
+
+                    <!-- Column 3: Already Post -->
+                    <div class="kanban-column" style="flex: 1; min-width: 320px; background-color: #f0fdf4; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 12px; max-height: calc(90vh - 220px); border: 1px solid #bbf7d0; box-shadow: var(--shadow-sm); height: 100%;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #16a34a; padding-bottom: 8px; margin-bottom: 5px;">
+                            <h4 style="font-size: 13.5px; font-weight: 800; color: #14532d; margin: 0;"><i class="fa-solid fa-circle-check"></i> Already Post (<span id="already-count">0</span>)</h4>
+                        </div>
+                        <div id="cards-already" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding: 2px;"></div>
+                    </div>
                 </div>
             </div>
             
@@ -1490,19 +1525,7 @@
                 </div>
             </div>
 
-            <!-- Archive Tab Content (Hidden by default) -->
-            <div id="tab-archive-content" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
-                <!-- Stats row -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 15px; margin-bottom: 10px;">
-                    <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);"><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> โพสต์ที่โพสต์เสร็จสมบูรณ์แล้วจะเก็บไว้ที่นี่ 5 วันก่อนลบออกโดยอัตโนมัติ</span>
-                    <span id="archive-count" style="font-size: 13px; font-weight: 700; color: var(--text-muted);">จำนวนทั้งหมด: 0 รายการ</span>
-                </div>
-                
-                <!-- Archive content list (scrollable) -->
-                <div id="archive-content-list" style="flex: 1; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 20px;">
-                    <!-- Loaded archive items will render here -->
-                </div>
-            </div>
+
         </div>
     </div>
 
@@ -2237,20 +2260,26 @@
         // Open Idea Library Modal
         let savedImages = [];
         let activeLibraryTab = 'ideas';
+        let selectedKanbanFilter = 'ALL';
 
         async function openLibrary() {
-            selectedCategoryFilter = null;
-            selectedStatusFilter = null;
-            document.getElementById('library-status-filter').value = 'ALL';
+            selectedKanbanFilter = 'ALL';
+            const filterDropdown = document.getElementById('kanban-filter-dropdown');
+            if (filterDropdown) filterDropdown.value = 'ALL';
             document.getElementById('library-modal').classList.add('active');
             
-            const listContainer = document.getElementById('library-content-list');
-            listContainer.innerHTML = `
+            const waitingCol = document.getElementById('cards-waiting');
+            const scheduledCol = document.getElementById('cards-scheduled');
+            const alreadyCol = document.getElementById('cards-already');
+            const skeleton = `
                 <div style="padding: 10px;">
-                    <div class="skeleton-block" style="height: 120px; margin-bottom: 15px; border-radius: 8px;"></div>
-                    <div class="skeleton-block" style="height: 120px; margin-bottom: 15px; border-radius: 8px;"></div>
+                    <div class="skeleton-block" style="height: 100px; margin-bottom: 12px; border-radius: 8px;"></div>
+                    <div class="skeleton-block" style="height: 100px; margin-bottom: 12px; border-radius: 8px;"></div>
                 </div>
             `;
+            if (waitingCol) waitingCol.innerHTML = skeleton;
+            if (scheduledCol) scheduledCol.innerHTML = skeleton;
+            if (alreadyCol) alreadyCol.innerHTML = skeleton;
             
             try {
                 await loadImagesList();
@@ -2260,12 +2289,14 @@
                 switchLibraryTab('ideas');
             } catch (err) {
                 console.error("Error loading saved ideas:", err);
-                listContainer.innerHTML = `
-                    <div style="text-align: center; color: var(--danger); padding: 30px;">
-                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; margin-bottom: 8px;"></i>
-                        <p>โหลดคลังไอเดียขัดข้อง</p>
-                    </div>
-                `;
+                if (waitingCol) {
+                    waitingCol.innerHTML = `
+                        <div style="text-align: center; color: var(--danger); padding: 20px;">
+                            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 4px;"></i>
+                            <p style="font-size: 11px;">โหลดคลังไอเดียขัดข้อง</p>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -2277,26 +2308,20 @@
             activeLibraryTab = tab;
             const ideasBtn = document.getElementById('tab-ideas-btn');
             const imagesBtn = document.getElementById('tab-images-btn');
-            const archiveBtn = document.getElementById('tab-archive-btn');
             
             const ideasContent = document.getElementById('tab-ideas-content');
             const imagesContent = document.getElementById('tab-images-content');
-            const archiveContent = document.getElementById('tab-archive-content');
             
             ideasBtn.className = tab === 'ideas' ? 'btn btn-primary' : 'btn btn-secondary';
             imagesBtn.className = tab === 'images' ? 'btn btn-primary' : 'btn btn-secondary';
-            archiveBtn.className = tab === 'archive' ? 'btn btn-primary' : 'btn btn-secondary';
             
             ideasContent.style.display = tab === 'ideas' ? 'flex' : 'none';
             imagesContent.style.display = tab === 'images' ? 'flex' : 'none';
-            archiveContent.style.display = tab === 'archive' ? 'flex' : 'none';
             
             if (tab === 'ideas') {
                 renderLibraryItems();
             } else if (tab === 'images') {
                 loadImagesList();
-            } else if (tab === 'archive') {
-                renderArchiveItems();
             }
         }
 
@@ -2349,7 +2374,7 @@
             
             if (selectedImg) {
                 previewContainer.innerHTML = `
-                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
+                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
                         <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                 `;
@@ -2358,452 +2383,439 @@
             }
         }
 
-        async function handleImageFileSelected(event) {
-            const files = event.target.files;
-            if (files && files.length > 0) {
-                await uploadImageFile(files[0]);
-            }
+        function handleKanbanFilterChange(val) {
+            selectedKanbanFilter = val;
+            renderLibraryItems();
         }
 
-        async function handleImageDrop(event) {
-            event.preventDefault();
-            document.getElementById('image-drag-zone').style.background = 'hsl(var(--primary) / 0.03)';
-            const files = event.dataTransfer.files;
-            if (files && files.length > 0) {
-                await uploadImageFile(files[0]);
-            }
-        }
-
-        async function uploadImageFile(file) {
-            if (!file.type.startsWith('image/')) {
-                toast('กรุณาเลือกไฟล์ที่เป็นรูปภาพเท่านั้น', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const base64Data = e.target.result;
-                try {
-                    toast('กำลังอัปโหลดรูปภาพความละเอียดสูง...', 'info');
-                    const response = await fetch('/api/images/upload', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            filename: file.name,
-                            data: base64Data
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        toast('อัปโหลดรูปภาพสำเร็จ!', 'success');
-                        await loadImagesList();
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (err) {
-                    console.error("Error uploading image:", err);
-                    toast(`อัปโหลดรูปภาพล้มเหลว: ${err.message}`, 'error');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function uploadDirectImageForPost(ideaId, inputElement) {
-            const file = inputElement.files[0];
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                toast('กรุณาเลือกไฟล์ที่เป็นรูปภาพเท่านั้น', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const base64Data = e.target.result;
-                try {
-                    toast('กำลังอัปโหลดรูปภาพความละเอียดสูงสำหรับโพสต์นี้...', 'info');
-                    const response = await fetch('/api/images/upload', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            filename: file.name,
-                            data: base64Data
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        toast('อัปโหลดและเลือกภาพให้เรียบร้อย!', 'success');
-                        
-                        await loadImagesList();
-                        
-                        const idea = savedLibraryIdeas.find(i => i.id === ideaId);
-                        if (idea) {
-                            idea.selected_image_id = data.image.id;
-                        }
-                        
-                        renderLibraryItems();
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (err) {
-                    console.error("Error uploading direct image:", err);
-                    toast(`อัปโหลดรูปภาพล้มเหลว: ${err.message}`, 'error');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function handleLibraryDropdownChange(val) {
-            if (val === 'ALL') {
-                selectedStatusFilter = null;
-                selectedCategoryFilter = 'ALL';
+        function toggleCardHeadlineInput(id, val) {
+            const imgWrap = document.getElementById(`image-input-wrapper-${id}`);
+            const headWrap = document.getElementById(`headline-input-wrapper-${id}`);
+            if (val === 'with_image') {
+                if (imgWrap) imgWrap.style.display = 'block';
+                if (headWrap) headWrap.style.display = 'none';
+            } else if (val === 'headline_only') {
+                if (imgWrap) imgWrap.style.display = 'none';
+                if (headWrap) headWrap.style.display = 'block';
             } else {
-                selectedStatusFilter = val;
-                selectedCategoryFilter = null;
+                if (imgWrap) imgWrap.style.display = 'none';
+                if (headWrap) headWrap.style.display = 'none';
             }
-            renderLibraryItems();
         }
 
-        // Helper to clear filters and go back to categories
-        function clearLibraryFilters() {
-            selectedCategoryFilter = null;
-            selectedStatusFilter = null;
-            renderLibraryItems();
-        }
-
-        // Render library cards based on current status or category filter
         function renderLibraryItems() {
-            const listContainer = document.getElementById('library-content-list');
+            const waitingCol = document.getElementById('cards-waiting');
+            const scheduledCol = document.getElementById('cards-scheduled');
+            const alreadyCol = document.getElementById('cards-already');
             
-            // Filter out 'Used' status from the main ideas tab
-            const activeIdeas = savedLibraryIdeas.filter(item => item.status !== 'Used');
+            if (!waitingCol || !scheduledCol || !alreadyCol) return;
             
-            // If no filter is active, show the Category & Status Shortcuts Grid
-            if (selectedCategoryFilter === null && selectedStatusFilter === null) {
-                // Hide status filter dropdown parent wrapper since we are in shortcut dashboard mode
-                document.getElementById('library-status-filter').parentElement.style.display = 'none';
-                document.getElementById('library-count').innerText = `ไอเดียพร้อมใช้งานทั้งหมด: ${activeIdeas.length} รายการ`;
-                
-                // Group ideas by category dynamically
-                const categoryCounts = {};
-                activeIdeas.forEach(item => {
-                    const cat = item.news_category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป';
-                    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-                });
-                
-                // Count active ideas by status
-                const statusCounts = {
-                    'Waiting List': 0,
-                    'Scheduled': 0,
-                    'Failed': 0,
-                    'Interested': 0,
-                    'Later': 0
-                };
-                activeIdeas.forEach(item => {
-                    if (statusCounts[item.status] !== undefined) {
-                        statusCounts[item.status]++;
-                    }
-                });
-                
-                // Render category cards HTML
-                let categoryCardsHtml = '';
-                const sortedCategories = Object.keys(categoryCounts).sort();
-                
-                // Add a default "ทั้งหมด" card
-                categoryCardsHtml += `
-                    <div class="category-card" onclick="selectedCategoryFilter = 'ALL'; renderLibraryItems();" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-folder-open" style="color: #16a34a; font-size: 16px; margin-top: 2px;"></i>
-                            <span style="color: #14532d; font-weight: bold;">แสดงไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #16a34a; color: white;">${activeIdeas.length} ไอเดีย</span>
-                    </div>
-                `;
-                
-                sortedCategories.forEach(cat => {
-                    let icon = 'fa-solid fa-folder';
-                    let cardStyle = 'background: #f8fafc; border-color: #e2e8f0;';
-                    let iconColor = '#0055ff';
-                    let titleColor = 'var(--text-main)';
-                    let badgeStyle = 'background: hsl(var(--primary) / 0.08); color: var(--primary);';
-                    
-                    if (cat.includes('🤖') || cat.includes('โมเดล') || cat.includes('เทคโนโลยี')) {
-                        icon = 'fa-solid fa-robot';
-                        cardStyle = 'background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-color: #e9d5ff;';
-                        iconColor = '#9333ea';
-                        titleColor = '#581c87';
-                        badgeStyle = 'background: #9333ea; color: white;';
-                    } else if (cat.includes('💡') || cat.includes('นวัตกรรม') || cat.includes('ข่าวสาร')) {
-                        icon = 'fa-solid fa-lightbulb';
-                        cardStyle = 'background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fde68a;';
-                        iconColor = '#d97706';
-                        titleColor = '#78350f';
-                        badgeStyle = 'background: #d97706; color: white;';
-                    } else if (cat.includes('📈') || cat.includes('ธุรกิจ') || cat.includes('ลงทุน')) {
-                        icon = 'fa-solid fa-chart-line';
-                        cardStyle = 'background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); border-color: #99f6e4;';
-                        iconColor = '#0d9488';
-                        titleColor = '#115e59';
-                        badgeStyle = 'background: #0d9488; color: white;';
-                    } else if (cat.includes('⚙️') || cat.includes('ระบบ') || cat.includes('การทำงาน')) {
-                        icon = 'fa-solid fa-gears';
-                        cardStyle = 'background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-color: #cbd5e1;';
-                        iconColor = '#475569';
-                        titleColor = '#1e293b';
-                        badgeStyle = 'background: #475569; color: white;';
-                    } else {
-                        cardStyle = 'background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-color: #ffc9c9;';
-                        iconColor = '#fa5252';
-                        titleColor = '#c92a2a';
-                        badgeStyle = 'background: #fa5252; color: white;';
-                    }
-                    
-                    categoryCardsHtml += `
-                        <div class="category-card" onclick="selectedCategoryFilter = '${cat.replace(/'/g, "\\'")}'; renderLibraryItems();" style="${cardStyle}">
-                            <div class="category-card-title">
-                                <i class="${icon}" style="color: ${iconColor}; font-size: 16px; margin-top: 2px;"></i>
-                                <span style="color: ${titleColor}; font-weight: bold;">${escapeHtml(cat)}</span>
-                            </div>
-                            <span class="category-card-count" style="${badgeStyle}">${categoryCounts[cat]} ไอเดีย</span>
-                        </div>
-                    `;
-                });
-                
-                // Render status cards HTML
-                let statusCardsHtml = `
-                    <div class="category-card" onclick="selectedStatusFilter = 'Waiting List'; renderLibraryItems();" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-color: #cbd5e1; border-left: 5px solid #64748b;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-hourglass-half" style="color: #64748b; font-size: 16px;"></i>
-                            <span style="color: #334155; font-weight: bold;">⏳ Waiting List (รอคิวโพสต์)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #64748b; color: white;">${statusCounts['Waiting List']} ไอเดีย</span>
-                    </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Scheduled'; renderLibraryItems();" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #bfdbfe; border-left: 5px solid #2563eb;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-clock" style="color: #2563eb; font-size: 16px;"></i>
-                            <span style="color: #1e3a8a; font-weight: bold;">📅 Scheduled (ตั้งเวลาโพสต์)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #2563eb; color: white;">${statusCounts['Scheduled']} ไอเดีย</span>
-                    </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Failed'; renderLibraryItems();" style="background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%); border-color: #ffc9c9; border-left: 5px solid #e03131;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-circle-exclamation" style="color: #e03131; font-size: 16px;"></i>
-                            <span style="color: #2b0000; font-weight: bold;">❌ Failed (โพสต์ล้มเหลว)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #e03131; color: white;">${statusCounts['Failed']} ไอเดีย</span>
-                    </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Interested'; renderLibraryItems();" style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); border-color: #fbcfe8; border-left: 5px solid #db2777;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-star" style="color: #db2777; font-size: 16px;"></i>
-                            <span style="color: #831843; font-weight: bold;">⭐ Interested (ร่าง/สนใจ)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #db2777; color: white;">${statusCounts['Interested']} ไอเดีย</span>
-                    </div>
-                    <div class="category-card" onclick="selectedStatusFilter = 'Later'; renderLibraryItems();" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0; border-left: 5px solid #16a34a;">
-                        <div class="category-card-title">
-                            <i class="fa-solid fa-box-archive" style="color: #16a34a; font-size: 16px;"></i>
-                            <span style="color: #14532d; font-weight: bold;">📁 Later (ไว้โพสต์ทีหลัง)</span>
-                        </div>
-                        <span class="category-card-count" style="background: #16a34a; color: white;">${statusCounts['Later']} ไอเดีย</span>
-                    </div>
-                `;
-                
-                listContainer.innerHTML = `
-                    <div style="margin-bottom: 20px;">
-                        <div class="category-section-title">
-                            <i class="fa-solid fa-tags"></i> เลือกดูตามประเภทไอเดีย (Category Shortcuts)
-                        </div>
-                        <div class="category-shortcut-grid">
-                            ${categoryCardsHtml}
-                        </div>
-                        
-                        <div class="category-section-title">
-                            <i class="fa-solid fa-filter"></i> เลือกดูตามสถานะโพสต์ (Status Shortcuts)
-                        </div>
-                        <div class="category-shortcut-grid">
-                            ${statusCardsHtml}
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-            
-            // If filter is active, show the filtered list
-            document.getElementById('library-status-filter').parentElement.style.display = 'flex';
-            
-            let filtered = activeIdeas;
-            let currentFilterTitle = "";
-            
-            if (selectedCategoryFilter !== null) {
-                if (selectedCategoryFilter !== 'ALL') {
-                    filtered = activeIdeas.filter(item => (item.news_category || '💡 นวัตกรรม & ข่าวสาร AI ทั่วไป') === selectedCategoryFilter);
-                    currentFilterTitle = `ประเภทไอเดีย: ${selectedCategoryFilter}`;
-                } else {
-                    currentFilterTitle = "ไอเดียทั้งหมด (ไม่รวมโพสต์แล้ว)";
-                }
-            } else if (selectedStatusFilter !== null) {
-                filtered = activeIdeas.filter(item => item.status === selectedStatusFilter);
-                currentFilterTitle = `สถานะโพสต์: ${selectedStatusFilter}`;
-            }
-            
-            // Synchronize status filter dropdown value
-            if (selectedStatusFilter !== null) {
-                document.getElementById('library-status-filter').value = selectedStatusFilter;
+            waitingCol.innerHTML = '';
+            scheduledCol.innerHTML = '';
+            alreadyCol.innerHTML = '';
+
+            let waitingIdeas = [];
+            let scheduledIdeas = [];
+            let alreadyIdeas = [];
+
+            if (selectedKanbanFilter === 'ALL') {
+                waitingIdeas = savedLibraryIdeas.filter(item => 
+                    item.status !== 'Scheduled' && item.status !== 'Used' && item.status !== 'Posting'
+                );
+                scheduledIdeas = savedLibraryIdeas.filter(item => item.status === 'Scheduled' || item.status === 'Posting');
+                alreadyIdeas = savedLibraryIdeas.filter(item => item.status === 'Used');
             } else {
-                document.getElementById('library-status-filter').value = 'ALL';
+                waitingIdeas = savedLibraryIdeas.filter(item => item.status === selectedKanbanFilter);
+                scheduledIdeas = [];
+                alreadyIdeas = [];
             }
-            
-            // Render back navigation header
-            let navigationHeaderHtml = `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: hsl(var(--primary) / 0.04); padding: 12px 18px; border-radius: 10px; border: 1px solid hsl(var(--primary) / 0.1); margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <button class="btn btn-secondary" onclick="clearLibraryFilters()" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px;">
-                            <i class="fa-solid fa-arrow-left"></i> ย้อนกลับไปหมวดหมู่
-                        </button>
-                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">${escapeHtml(currentFilterTitle)}</span>
-                    </div>
-                    <span style="font-size: 12.5px; font-weight: 700; color: var(--text-muted);">พบทั้งหมด: ${filtered.length} รายการ</span>
-                </div>
-            `;
-            
-            document.getElementById('library-count').innerText = `จำนวนที่แสดง: ${filtered.length} / ทั้งหมด ${savedLibraryIdeas.length} รายการ`;
-            
-            if (filtered.length === 0) {
-                listContainer.innerHTML = navigationHeaderHtml + `
-                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
-                        <i class="fa-regular fa-folder-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
-                        <p style="font-size: 14px; font-weight: bold;">ไม่พบรายการโพสต์ในหมวดหมู่นี้</p>
-                        <p style="font-size: 12px; margin-top: 4px;">คุณสามารถเลือกบันทึกไอเดียใหม่เพื่อแสดงผลในหมวดหมู่นี้</p>
+
+            document.getElementById('library-count').innerText = `พบทั้งหมดในคลัง: ${savedLibraryIdeas.length} รายการ (แสดงตัวกรอง: ${waitingIdeas.length + scheduledIdeas.length + alreadyIdeas.length} รายการ)`;
+            document.getElementById('waiting-count').innerText = waitingIdeas.length;
+            document.getElementById('scheduled-count').innerText = scheduledIdeas.length;
+            document.getElementById('already-count').innerText = alreadyIdeas.length;
+
+            let imageOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
+            savedImages.forEach(img => {
+                imageOptions += `<option value="${img.id}">${escapeHtml(img.name)}</option>`;
+            });
+
+            if (waitingIdeas.length === 0) {
+                waitingCol.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 12px;">
+                        <i class="fa-regular fa-folder-open" style="font-size: 24px; opacity: 0.5; margin-bottom: 6px;"></i>
+                        <p>ไม่มีไอเดียในส่วนนี้</p>
                     </div>
                 `;
-                return;
-            }
-            
-            let html = navigationHeaderHtml;
-            filtered.forEach(item => {
-                let imageOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
-                savedImages.forEach(img => {
-                    imageOptions += `<option value="${img.id}" ${item.selected_image_id === img.id ? 'selected' : ''}>${escapeHtml(img.name)}</option>`;
-                });
-                
-                const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
-                const imgPreviewHtml = selectedImg ? `
-                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
-                        <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                ` : '';
-                
-                let scheduleControlHtml = '';
-                if (item.status === 'Scheduled') {
-                    let fbLink = '';
-                    if (item.facebook_post_id) {
-                        const parts = item.facebook_post_id.split('_');
-                        const postId = parts.length > 1 ? parts[1] : parts[0];
-                        fbLink = `https://facebook.com/${postId}`;
-                    }
-                    scheduleControlHtml = `
-                        <div style="background-color: hsl(var(--primary) / 0.05); padding: 12px; border-radius: 8px; border: 1px solid hsl(var(--primary) / 0.2); margin-top: 10px;">
-                            <p style="font-size: 12.5px; font-weight: 700; color: hsl(var(--primary)); margin: 0 0 8px 0;">
-                                <i class="fa-solid fa-clock"></i> ตั้งเวลาโพสต์อัตโนมัติแล้ว: ${item.scheduled_time}
-                            </p>
-                            ${fbLink ? `
-                            <p style="margin: 0 0 8px 0;">
-                                <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--primary); font-weight: 700; text-decoration: none;">
-                                    <i class="fa-brands fa-facebook"></i> ลิงก์โพสต์ที่ตั้งเวลาบน Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 10px;"></i>
-                                </a>
-                            </p>
-                            ` : ''}
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="cancelPostSchedule('${item.id}')">
-                                    ยกเลิกคิวโพสต์
-                                </button>
-                                <button class="btn btn-primary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="publishNow('${item.id}')">
-                                    โพสต์ทันที (Publish Now)
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                } else if (item.status === 'Used') {
-                    let fbLink = '';
-                    if (item.facebook_post_id) {
-                        const parts = item.facebook_post_id.split('_');
-                        const postId = parts.length > 1 ? parts[1] : parts[0];
-                        fbLink = `https://facebook.com/${postId}`;
-                    }
-                    scheduleControlHtml = `
-                        <div style="background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-top: 10px;">
-                            <p style="font-size: 12.5px; font-weight: 700; color: #166534; margin: 0;">
-                                <i class="fa-solid fa-circle-check"></i> โพสต์ขึ้นเพจสำเร็จแล้ว ${item.posted_at ? `เมื่อ ${item.posted_at}` : ''}
-                            </p>
-                            ${fbLink ? `
-                            <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--primary); font-weight: 700; text-decoration: none; margin-top: 6px;">
-                                <i class="fa-brands fa-facebook"></i> ลิงก์ไปยังโพสต์บน Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 10px;"></i>
-                            </a>
-                            ` : ''}
-                        </div>
-                    `;
-                } else if (item.status === 'Failed') {
-                    scheduleControlHtml = `
-                        <div style="background-color: #fef2f2; padding: 12px; border-radius: 8px; border: 1px solid #fca5a5; margin-top: 10px;">
-                            <p style="font-size: 12.5px; font-weight: 700; color: #991b1b; margin: 0 0 6px 0;">
-                                <i class="fa-solid fa-triangle-exclamation"></i> โพสต์ล้มเหลว: ${escapeHtml(item.post_error)}
-                            </p>
-                            <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px 0;">โปรดตรวจสอบข้อมูล Access Token หรือเปิดให้ตั้งค่าโพสต์ใหม่อีกครั้ง</p>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11px; height: auto;" onclick="cancelPostSchedule('${item.id}')">
-                                    ล้างประวัติข้อผิดพลาด
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                } else if (item.status === 'Posting') {
-                    scheduleControlHtml = `
-                        <div style="background-color: #fffbeb; padding: 12px; border-radius: 8px; border: 1px solid #fde68a; margin-top: 10px;">
-                            <p style="font-size: 12.5px; font-weight: 700; color: #b45309; margin: 0;">
-                                <i class="fa-solid fa-spinner fa-spin"></i> กำลังอัปโหลดและส่งโพสต์ไปยัง Facebook...
-                            </p>
-                        </div>
-                    `;
-                } else {
-                    let defaultDateVal = '';
-                    if (item.scheduled_time) {
-                        defaultDateVal = item.scheduled_time.replace(' ', 'T');
-                    }
+            } else {
+                let html = '';
+                waitingIdeas.forEach(item => {
+                    let specificImgOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
+                    savedImages.forEach(img => {
+                        specificImgOptions += `<option value="${img.id}" ${item.selected_image_id === img.id ? 'selected' : ''}>${escapeHtml(img.name)}</option>`;
+                    });
                     
-                    scheduleControlHtml = `
-                        <div style="background-color: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                            <p style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin: 0;">
-                                <i class="fa-solid fa-paper-plane"></i> ตั้งค่าโพสต์อัตโนมัติ (Facebook Auto-Post)
-                            </p>
-                            
-                            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                                <div style="flex: 1; min-width: 200px;">
-                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">1. เลือกหรืออัปโหลดภาพประกอบ:</label>
-                                    <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
-                                        <select id="post-img-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px; flex: 1;" onchange="updatePostImagePreview('${item.id}', this.value)">
-                                            ${imageOptions}
-                                        </select>
-                                        <input type="file" id="upload-direct-file-${item.id}" style="display: none;" accept="image/*" onchange="uploadDirectImageForPost('${item.id}', this)">
-                                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11.5px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;" onclick="document.getElementById('upload-direct-file-${item.id}').click()" title="อัปโหลดรูปภาพใหม่สำหรับโพสต์นี้">
-                                            <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดรูป
-                                        </button>
+                    const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
+                    const imgPreviewHtml = selectedImg ? `
+                        <div style="margin-top: 6px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
+                            <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    ` : '';
+
+                    let defaultDateVal = item.scheduled_time ? item.scheduled_time.replace(' ', 'T') : '';
+                    let postFormat = item.post_format || 'with_image';
+                    let customHeadline = item.custom_headline || item.news_title || '';
+
+                    let categoryColor = '#64748b';
+                    let cat = item.news_category || '';
+                    if (cat.includes('🤖') || cat.includes('โมเดล')) categoryColor = '#9333ea';
+                    else if (cat.includes('💡') || cat.includes('นวัตกรรม')) categoryColor = '#d97706';
+                    else if (cat.includes('📈') || cat.includes('ธุรกิจ')) categoryColor = '#0d9488';
+
+                    let statusBadge = '';
+                    if (item.status === 'Failed') {
+                        statusBadge = `<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fca5a5;"><i class="fa-solid fa-triangle-exclamation"></i> Failed: ${escapeHtml(item.post_error)}</span>`;
+                    } else if (item.status === 'Interested') {
+                        statusBadge = `<span style="background: #fce7f3; color: #9d174d; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fbcfe8;"><i class="fa-solid fa-star"></i> Interested</span>`;
+                    } else if (item.status === 'Later') {
+                        statusBadge = `<span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #cbd5e1;"><i class="fa-solid fa-box-archive"></i> Later</span>`;
+                    } else {
+                        statusBadge = `<span style="background: #f8fafc; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #e2e8f0;"><i class="fa-solid fa-hourglass"></i> Ready</span>`;
+                    }
+
+                    html += `
+                        <div class="kanban-card" style="border-top: 4px solid ${categoryColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span class="category-tag" style="font-size: 9px; padding: 1px 6px; background-color: ${categoryColor}10; color: ${categoryColor}; border: 1px solid ${categoryColor}20; display: inline-block;">${escapeHtml(item.news_category)}</span>
+                                    ${statusBadge}
+                                </div>
+                                <button class="modal-close" style="color: var(--danger); font-size: 13px; padding: 2px; background: none; border: none; cursor: pointer;" onclick="deleteIdea('${item.id}')" title="ลบถาวร">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+
+                            <h5 style="font-size: 12px; font-weight: 800; line-height: 1.4; color: var(--text-main); margin: 4px 0 0 0;">
+                                <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                    <i class="fa-solid fa-link" style="font-size: 10px;"></i> ${escapeHtml(item.news_title)}
+                                </a>
+                            </h5>
+
+                            <div style="background-color: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #f1f5f9; font-size: 11px; color: #1c1e21; white-space: pre-wrap; max-height: 70px; overflow-y: auto; line-height: 1.4;">${escapeHtml(item.content)}</div>
+
+                            <div style="margin-top: 4px;">
+                                <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">รูปแบบโพสต์:</label>
+                                <select id="post-format-${item.id}" class="form-input" style="padding: 2px 6px; font-size: 11px; height: 28px; width: 100%;" onchange="toggleCardHeadlineInput('${item.id}', this.value)">
+                                    <option value="with_image" ${postFormat === 'with_image' ? 'selected' : ''}>📷 มีภาพประกอบ</option>
+                                    <option value="text_only" ${postFormat === 'text_only' ? 'selected' : ''}>📝 ไม่มีภาพประกอบ</option>
+                                    <option value="headline_only" ${postFormat === 'headline_only' ? 'selected' : ''}>📣 โพสต์เฉพาะ Headline</option>
+                                </select>
+                            </div>
+
+                            <div id="image-input-wrapper-${item.id}" style="display: ${postFormat === 'with_image' ? 'block' : 'none'}; margin-top: 4px;">
+                                <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">ภาพประกอบ:</label>
+                                <div style="display: flex; gap: 4px; align-items: center;">
+                                    <select id="post-img-${item.id}" class="form-input" style="padding: 2px 6px; font-size: 11px; height: 28px; flex: 1;" onchange="updatePostImagePreview('${item.id}', this.value)">
+                                        ${specificImgOptions}
+                                    </select>
+                                    <input type="file" id="upload-direct-file-${item.id}" style="display: none;" accept="image/*" onchange="uploadDirectImageForPost('${item.id}', this)">
+                                    <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 11px; height: 28px; flex-shrink: 0;" onclick="document.getElementById('upload-direct-file-${item.id}').click()" title="อัปโหลดรูปภาพใหม่">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </button>
+                                </div>
+                                <div id="post-img-preview-${item.id}">${imgPreviewHtml}</div>
+                            </div>
+
+                            <div id="headline-input-wrapper-${item.id}" style="display: ${postFormat === 'headline_only' ? 'block' : 'none'}; margin-top: 4px;">
+                                <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">เขียน Headline ที่ต้องการ:</label>
+                                <input type="text" id="custom-headline-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 11.5px; height: 28px; width: 100%;" value="${escapeHtml(customHeadline)}" placeholder="ระบุหัวข้อโพสต์...">
+                            </div>
+
+                            <div style="margin-top: 4px;">
+                                <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">วันที่เวลาโพสต์:</label>
+                                <input type="datetime-local" id="post-time-${item.id}" class="form-input" style="padding: 2px; font-size: 11px; height: 28px; width: 100%;" value="${defaultDateVal}">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+                                <button class="btn btn-primary" style="padding: 4px; font-size: 11px; height: 28px;" onclick="schedulePost('${item.id}')">
+                                    <i class="fa-solid fa-calendar-check"></i> ตั้งเวลาโพสต์
+                                </button>
+                                <button class="btn btn-secondary" style="padding: 4px; font-size: 11px; height: 28px; border-color: var(--primary); color: var(--primary); background: transparent;" onclick="publishNowDirect('${item.id}')">
+                                    <i class="fa-solid fa-share"></i> โพสต์ทันที
+                                </button>
+                            </div>
+
+                            <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 4px;">
+                                <select class="form-input" style="padding: 2px; font-size: 10.5px; width: 130px; height: 26px; font-weight: 600;" onchange="updateIdeaStatus('${item.id}', this.value)">
+                                    <option value="Waiting List" ${item.status === 'Waiting List' ? 'selected' : ''}>⏳ Waitlist</option>
+                                    <option value="Interested" ${item.status === 'Interested' ? 'selected' : ''}>⭐ Interested</option>
+                                    <option value="Later" ${item.status === 'Later' ? 'selected' : ''}>📁 Later</option>
+                                </select>
+                                <button class="btn btn-primary" style="padding: 2px 6px; font-size: 10.5px; height: 26px; border-radius: 4px;" onclick="copyLibraryText('${item.id}')">
+                                    <i class="fa-solid fa-copy"></i> คัดลอก
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                waitingCol.innerHTML = html;
+            }
+
+            if (scheduledIdeas.length === 0) {
+                scheduledCol.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 12px;">
+                        <i class="fa-regular fa-clock" style="font-size: 24px; opacity: 0.5; margin-bottom: 6px;"></i>
+                        <p>ไม่มีโพสต์ที่ตั้งเวลา</p>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                scheduledIdeas.forEach(item => {
+                    let specificImgOptions = '<option value="">-- ไม่ใช้รูปภาพประกอบ --</option>';
+                    savedImages.forEach(img => {
+                        specificImgOptions += `<option value="${img.id}" ${item.selected_image_id === img.id ? 'selected' : ''}>${escapeHtml(img.name)}</option>`;
+                    });
+                    
+                    const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
+                    const imgPreviewHtml = selectedImg ? `
+                        <div style="margin-top: 6px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
+                            <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    ` : '';
+
+                    let defaultDateVal = item.scheduled_time ? item.scheduled_time.replace(' ', 'T') : '';
+                    let postFormat = item.post_format || 'with_image';
+                    let customHeadline = item.custom_headline || item.news_title || '';
+
+                    let formatBadge = '';
+                    if (postFormat === 'with_image') formatBadge = `<span style="background: #eff6ff; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #bfdbfe;"><i class="fa-solid fa-image"></i> มีภาพประกอบ</span>`;
+                    else if (postFormat === 'text_only') formatBadge = `<span style="background: #f8fafc; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #cbd5e1;"><i class="fa-solid fa-file-text"></i> ไม่มีภาพ</span>`;
+                    else if (postFormat === 'headline_only') formatBadge = `<span style="background: #fdf2f8; color: #9d174d; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #fbcfe8;"><i class="fa-solid fa-bullhorn"></i> เฉพาะ Headline</span>`;
+
+                    let fbLink = '';
+                    if (item.facebook_post_id) {
+                        const parts = item.facebook_post_id.split('_');
+                        const postId = parts.length > 1 ? parts[1] : parts[0];
+                        fbLink = `https://facebook.com/${postId}`;
+                    }
+
+                    if (item.status === 'Posting') {
+                        html += `
+                            <div class="kanban-card" style="border-top: 4px solid #eab308; background-color: #fffbeb;">
+                                <div style="font-size: 12px; font-weight: 700; color: #b45309; text-align: center; padding: 15px 0;">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> กำลังแชร์ไปยัง Facebook...
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="kanban-card" style="border-top: 4px solid #2563eb; background-color: #fbfdff;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span style="font-size: 10.5px; font-weight: 800; color: #1e40af;"><i class="fa-solid fa-clock"></i> ตั้งเวลาโพสต์แล้ว</span>
+                                        ${formatBadge}
                                     </div>
-                                    <div id="post-img-preview-${item.id}">${imgPreviewHtml}</div>
+                                    <button class="modal-close" style="color: var(--danger); font-size: 14px; padding: 2px;" onclick="cancelPostSchedule('${item.id}')" title="ยกเลิกคิวโพสต์">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <h5 style="font-size: 12px; font-weight: 800; color: var(--text-main); margin: 4px 0 0 0;">
+                                    <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                        <i class="fa-solid fa-link" style="font-size: 10px;"></i> ${escapeHtml(item.news_title)}
+                                    </a>
+                                </h5>
+
+                                <div style="background-color: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #f1f5f9; font-size: 11px; max-height: 70px; overflow-y: auto;">
+                                    ${postFormat === 'headline_only' ? `<strong>Headline:</strong> ${escapeHtml(customHeadline)}` : escapeHtml(item.content)}
+                                </div>
+
+                                <div style="background-color: #eff6ff; padding: 6px; border-radius: 6px; border: 1px solid #dbeafe; font-size: 10.5px; font-weight: 700; color: #1e40af;">
+                                    <i class="fa-regular fa-calendar-days"></i> โพสต์ออโต้: ${item.scheduled_time}
                                 </div>
                                 
-                                <div style="flex: 1; min-width: 200px;">
-                                    <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">2. วันที่และเวลาโพสต์ (Timeline):</label>
-                                    <input type="datetime-local" id="post-time-${item.id}" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 32px;" value="${defaultDateVal}">
-                                </div>
+                                ${fbLink ? `
+                                <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #2563eb; font-weight: bold; text-decoration: none;">
+                                    <i class="fa-brands fa-facebook"></i> ลิงก์คิว Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 8px;"></i>
+                                </a>
+                                ` : ''}
+
+                                <details style="margin-top: 4px; font-size: 11px;">
+                                    <summary style="font-weight: 700; color: var(--text-muted); cursor: pointer; outline: none;"><i class="fa-solid fa-pen"></i> เลื่อนหรือเปลี่ยนรูปแบบ</summary>
+                                    <div style="display: flex; flex-direction: column; gap: 6px; padding: 6px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 4px;">
+                                        <div>
+                                            <label style="font-size: 9.5px; font-weight: bold;">รูปแบบ:</label>
+                                            <select id="post-format-${item.id}" class="form-input" style="padding: 2px; font-size: 11px; height: 26px; width: 100%;" onchange="toggleCardHeadlineInput('${item.id}', this.value)">
+                                                <option value="with_image" ${postFormat === 'with_image' ? 'selected' : ''}>📷 มีภาพประกอบ</option>
+                                                <option value="text_only" ${postFormat === 'text_only' ? 'selected' : ''}>📝 ไม่มีภาพประกอบ</option>
+                                                <option value="headline_only" ${postFormat === 'headline_only' ? 'selected' : ''}>📣 เฉพาะ Headline</option>
+                                            </select>
+                                        </div>
+                                        <div id="image-input-wrapper-${item.id}" style="display: ${postFormat === 'with_image' ? 'block' : 'none'};">
+                                            <label style="font-size: 9.5px; font-weight: bold;">ภาพประกอบ:</label>
+                                            <select id="post-img-${item.id}" class="form-input" style="padding: 2px; font-size: 11px; height: 26px; width: 100%;" onchange="updatePostImagePreview('${item.id}', this.value)">
+                                                ${specificImgOptions}
+                                            </select>
+                                            ${imgPreviewHtml}
+                                        </div>
+                                        <div id="headline-input-wrapper-${item.id}" style="display: ${postFormat === 'headline_only' ? 'block' : 'none'};">
+                                            <label style="font-size: 9.5px; font-weight: bold;">Headline:</label>
+                                            <input type="text" id="custom-headline-${item.id}" class="form-input" style="padding: 2px 6px; font-size: 11px; height: 26px; width: 100%;" value="${escapeHtml(customHeadline)}">
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 9.5px; font-weight: bold;">เลื่อนเวลา:</label>
+                                            <input type="datetime-local" id="post-time-${item.id}" class="form-input" style="padding: 2px; font-size: 11px; height: 26px; width: 100%;" value="${defaultDateVal}">
+                                        </div>
+                                        <button class="btn btn-primary" style="padding: 4px; font-size: 11px; height: 26px; width: 100%;" onclick="schedulePost('${item.id}')">
+                                            <i class="fa-solid fa-floppy-disk"></i> บันทึกการเลื่อนเวลา
+                                        </button>
+                                    </div>
+                                </details>
                             </div>
-                            
-                            <div style="display: flex; gap: 8px; margin-top: 4px;">
-                                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11.5px;" onclick="schedulePost('${item.id}')">
-                                    <i class="fa-solid fa-calendar-check"></i> อนุมัติ & ตั้งเวลาโพสต์
+                        `;
+                    }
+                });
+                scheduledCol.innerHTML = html;
+            }
+
+            if (alreadyIdeas.length === 0) {
+                alreadyCol.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 12px;">
+                        <i class="fa-regular fa-square-check" style="font-size: 24px; opacity: 0.5; margin-bottom: 6px;"></i>
+                        <p>ไม่มีโพสต์ที่เสร็จสิ้น</p>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                alreadyIdeas.forEach(item => {
+                    const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
+                    const imgPreviewHtml = selectedImg ? `
+                        <div style="margin-top: 6px; width: 80px; height: 50px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;">
+                            <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    ` : '';
+
+                    let fbLink = '';
+                    if (item.facebook_post_id) {
+                        const parts = item.facebook_post_id.split('_');
+                        const postId = parts.length > 1 ? parts[1] : parts[0];
+                        fbLink = `https://facebook.com/${postId}`;
+                    }
+
+                    html += `
+                        <div class="kanban-card" style="border-top: 4px solid #16a34a; background-color: #fcfdfc;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <span style="font-size: 10px; font-weight: bold; color: #15803d;"><i class="fa-solid fa-circle-check"></i> โพสต์เสร็จสิ้นแล้ว</span>
+                                <button class="modal-close" style="color: var(--danger); font-size: 13px;" onclick="deleteIdea('${item.id}')" title="ลบถาวร">
+                                    <i class="fa-solid fa-trash-can"></i>
                                 </button>
-                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 11.5px; border-color: var(--primary); color: var(--primary); background: transparent;" onclick="publishNowDirect('${item.id}')">
-                                    <i class="fa-solid fa-share-from-square"></i> อนุมัติ & โพสต์ทันที
-                                </button>
+                            </div>
+
+                            <h5 style="font-size: 12px; font-weight: 800; color: var(--text-main); margin: 4px 0 0 0;">
+                                <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
+                                    <i class="fa-solid fa-link" style="font-size: 10px;"></i> ${escapeHtml(item.news_title)}
+                                </a>
+                            </h5>
+
+                            <div style="background-color: #f8fafc; padding: 8px; border-radius: 6px; font-size: 11px; max-height: 50px; overflow-y: auto; color: #475569;">
+                                ${escapeHtml(item.content)}
+                            </div>
+
+                            ${imgPreviewHtml}
+
+                            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 6px; border-radius: 6px; font-size: 10.5px;">
+                                <div style="font-weight: 700; color: #166534;"><i class="fa-solid fa-clock"></i> เมื่อ: ${item.posted_at || 'ไม่ระบุ'}</div>
+                                <div style="margin-top: 2px;">${getRemainingTimeText(item.posted_at)}</div>
+                            </div>
+
+                            ${fbLink ? `
+                            <a href="${fbLink}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #16a34a; font-weight: bold; text-decoration: none;">
+                                <i class="fa-brands fa-facebook"></i> ลิงก์ Facebook <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 9px;"></i>
+                            </a>
+                            ` : ''}
+
+                            <div style="display: flex; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 4px; justify-content: space-between;">
+                                <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">กู้คืน:</span>
+                                <select class="form-input" style="padding: 2px; font-size: 10.5px; width: 140px; height: 26px; font-weight: 600;" onchange="updateIdeaStatus('${item.id}', this.value)">
+                                    <option value="Used" selected>✅ Used</option>
+                                    <option value="Waiting List">⏳ Waiting List</option>
+                                    <option value="Scheduled">📅 Scheduled</option>
+                                    <option value="Interested">⭐ Interested</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                });
+                alreadyCol.innerHTML = html;
+            }
+        }
+
+        async function schedulePost(ideaId) {
+            const timeEl = document.getElementById(`post-time-${ideaId}`);
+            const scheduledTimeInput = timeEl ? timeEl.value : '';
+            
+            const imgEl = document.getElementById(`post-img-${ideaId}`);
+            const selectedImageId = imgEl ? imgEl.value : '';
+            
+            const fmtEl = document.getElementById(`post-format-${ideaId}`);
+            const postFormat = fmtEl ? fmtEl.value : 'with_image';
+            
+            const headEl = document.getElementById(`custom-headline-${ideaId}`);
+            const customHeadline = headEl ? headEl.value : '';
+            
+            if (!scheduledTimeInput) {
+                toast('กรุณาเลือกวันและเวลาที่ต้องการโพสต์', 'warning');
+                return;
+            }
+            
+            const selectedTime = new Date(scheduledTimeInput);
+            const now = new Date();
+            const diffMs = selectedTime - now;
+            const diffMins = diffMs / 1000 / 60;
+            
+            if (diffMins < 10) {
+                toast('เวลาที่ตั้งล่วงหน้าต้องมากกว่าเวลาปัจจุบันอย่างน้อย 10 นาที (ตามข้อกำหนดของ Facebook)', 'warning');
+                return;
+            }
+            
+            const formattedTime = scheduledTimeInput.replace('T', ' ') + ':00';
+            
+            try {
+                toast('กำลังบันทึกคิวการโพสต์...', 'info');
+                const response = await fetch('/api/schedule-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idea_id: ideaId,
+                        scheduled_time: formattedTime,
+                        timestamp: Math.floor(selectedTime.getTime() / 1000),
+                        selected_image_id: selectedImageId,
+                        post_format: postFormat,
+                        custom_headline: customHeadline
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    toast('อนุมัติ & ตั้งเวลาโพสต์สำเร็จ!', 'success');
+                    
+                    const idea = savedLibraryIdeas.find(i => i.id === ideaId);
+                    if (idea) {
+                        idea.status = 'Scheduled';
+                        idea.scheduled_time = formattedTime;
+                        idea.selected_image_id = selectedImageId;
+                        idea.post_format = postFormat;
+                        idea.custom_headline = customHeadline;
+                        if (idea.post_error) delete idea.post_error;
+                    }
+                    renderLibraryItems();
+                } else {
+                    throw new Error(data.error || 'Failed to schedule');
+                }
+            } catch (err) {
+                console.error("Error scheduling post:", err);
+                toast(`ตั้งเวลาโพสต์ล้มเหลว: ${err.message}`, 'error');
+            }
+        }                  </button>
                             </div>
                         </div>
                     `;
@@ -2986,10 +2998,20 @@
         }
 
         async function publishNowDirect(ideaId) {
-            const selectedImageId = document.getElementById(`post-img-${ideaId}`).value;
+            const imgEl = document.getElementById(`post-img-${ideaId}`);
+            const selectedImageId = imgEl ? imgEl.value : '';
+            
+            const fmtEl = document.getElementById(`post-format-${ideaId}`);
+            const postFormat = fmtEl ? fmtEl.value : 'with_image';
+            
+            const headEl = document.getElementById(`custom-headline-${ideaId}`);
+            const customHeadline = headEl ? headEl.value : '';
+            
             const idea = savedLibraryIdeas.find(i => i.id === ideaId);
             if (idea) {
                 idea.selected_image_id = selectedImageId;
+                idea.post_format = postFormat;
+                idea.custom_headline = customHeadline;
             }
             
             if (!confirm('คุณแน่ใจว่าต้องการโพสต์ข่าวสารนี้ขึ้น Facebook Page ของคุณทันที?')) return;
@@ -3004,7 +3026,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         idea_id: ideaId,
-                        selected_image_id: selectedImageId
+                        selected_image_id: selectedImageId,
+                        post_format: postFormat,
+                        custom_headline: customHeadline
                     })
                 });
                 const data = await response.json();
@@ -3013,7 +3037,7 @@
                     if (idea) {
                         idea.status = 'Used';
                         idea.facebook_post_id = data.post_id;
-                        idea.posted_at = new Date().toLocaleString();
+                        idea.posted_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
                         if (idea.post_error) delete idea.post_error;
                     }
                 } else {
@@ -3022,7 +3046,6 @@
             } catch (err) {
                 console.error("Error in publishNowDirect:", err);
                 toast(`โพสต์ล้มเหลว: ${err.message}`, 'error');
-                const idea = savedLibraryIdeas.find(i => i.id === ideaId);
                 if (idea) {
                     idea.status = 'Failed';
                     idea.post_error = err.message;
@@ -3046,14 +3069,8 @@
                     const idea = savedLibraryIdeas.find(i => i.id === id);
                     if (idea) {
                         idea.status = newStatus;
-                        if (newStatus === 'Used' && !idea.posted_at) {
-                            idea.posted_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
-                        }
-                    }
                     if (activeLibraryTab === 'ideas') {
                         renderLibraryItems();
-                    } else if (activeLibraryTab === 'archive') {
-                        renderArchiveItems();
                     }
                 }
             } catch (err) {
@@ -3079,8 +3096,6 @@
                     document.getElementById('library-badge-count').innerText = savedLibraryIdeas.length;
                     if (activeLibraryTab === 'ideas') {
                         renderLibraryItems();
-                    } else if (activeLibraryTab === 'archive') {
-                        renderArchiveItems();
                     }
                 }
             } catch (err) {
@@ -3121,105 +3136,11 @@
             const diffHrs = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
             const diffMins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
             
-            let text = '<i class="fa-solid fa-hourglass-half"></i> เหลือเวลาเก็บ: ';
-            if (diffDays > 0) text += `${diffDays} วัน `;
-            if (diffHrs > 0 || diffDays > 0) text += `${diffHrs} ชม. `;
-            text += `${diffMins} นาที`;
+            let text = '<i class="fa-solid fa-hourglass-half"></i> เหลือ: ';
+            if (diffDays > 0) text += `${diffDays}วัน `;
+            if (diffHrs > 0 || diffDays > 0) text += `${diffHrs}ชม. `;
+            text += `${diffMins}น.`;
             return `<span style="color: var(--text-muted); font-weight: 600;">${text}</span>`;
-        }
-
-        function renderArchiveItems() {
-            const listContainer = document.getElementById('archive-content-list');
-            const archiveIdeas = savedLibraryIdeas.filter(item => item.status === 'Used');
-            
-            document.getElementById('archive-count').innerText = `จำนวนประวัติทั้งหมด: ${archiveIdeas.length} รายการ`;
-            
-            if (archiveIdeas.length === 0) {
-                listContainer.innerHTML = `
-                    <div style="text-align: center; color: var(--text-muted); padding: 50px 20px;">
-                        <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;"></i>
-                        <p style="font-size: 14px; font-weight: bold;">ไม่มีโพสต์ที่เสร็จสมบูรณ์ในคลังเก็บ</p>
-                        <p style="font-size: 12px; margin-top: 4px;">เมื่อมีข่าวสารได้รับการแชร์ลงเพจแล้ว ข้อมูลจะมาปรากฏและจัดเก็บที่นี่ชั่วคราวเป็นเวลา 5 วัน</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            archiveIdeas.forEach(item => {
-                const selectedImg = savedImages.find(img => img.id === item.selected_image_id);
-                const imgPreviewHtml = selectedImg ? `
-                    <div style="margin-top: 8px; width: 100px; height: 60px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: var(--shadow);">
-                        <img src="${selectedImg.url}" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                ` : '';
-                
-                let fbLink = '';
-                if (item.facebook_post_id) {
-                    const parts = item.facebook_post_id.split('_');
-                    const postId = parts.length > 1 ? parts[1] : parts[0];
-                    fbLink = `https://facebook.com/${postId}`;
-                }
-                
-                html += `
-                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 10px; position: relative;">
-                        <!-- Top header details -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
-                            <div>
-                                <span class="category-tag" style="margin-bottom: 6px; font-size: 10px; display: inline-block;">${escapeHtml(item.news_category)}</span>
-                                <h4 style="font-size: 14px; font-weight: 800; line-height: 1.4; color: var(--text-main);">
-                                    <a href="${item.news_link}" target="_blank" style="color: var(--primary); text-decoration: none;">
-                                        <i class="fa-solid fa-link" style="font-size: 11px;"></i> ${escapeHtml(item.news_title)}
-                                    </a>
-                                </h4>
-                            </div>
-                            <button class="modal-close" style="color: var(--danger); font-size: 15px; padding: 4px; background: none; border: none; cursor: pointer; transition: var(--transition);" onclick="deleteIdea('${item.id}')" title="ลบถาวร">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                        
-                        <!-- Post content body -->
-                        <div class="fb-post-body" style="font-size: 13px; background-color: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #f1f5f9; white-space: pre-wrap; font-family: var(--font-family); color: #1c1e21; line-height: 1.6;">${escapeHtml(item.content)}</div>
-                        
-                        <!-- Image Preview -->
-                        ${imgPreviewHtml}
-                        
-                        <!-- Auto-delete alert and FB post link -->
-                        <div style="background-color: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                            <div>
-                                <p style="font-size: 12.5px; font-weight: 700; color: #166534; margin: 0;">
-                                    <i class="fa-solid fa-circle-check"></i> โพสต์สำเร็จแล้วเมื่อ: ${item.posted_at || 'ไม่ระบุ'}
-                                </p>
-                                <div style="margin-top: 4px; font-size: 11.5px;">
-                                    ${getRemainingTimeText(item.posted_at)}
-                                </div>
-                            </div>
-                            ${fbLink ? `
-                            <a href="${fbLink}" target="_blank" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 5px 10px; height: auto; text-decoration: none; font-weight: 700;">
-                                <i class="fa-brands fa-facebook"></i> ลิงก์โพสต์ Facebook <i class="fa-solid fa-up-right-from-square" style="font-size: 9px;"></i>
-                            </a>
-                            ` : ''}
-                        </div>
-                        
-                        <!-- Footer action panel -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 10px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);"><i class="fa-regular fa-flag"></i> เปลี่ยนสถานะ:</span>
-                                <select class="form-input" style="padding: 4px 10px; font-size: 12px; width: 180px; font-weight: 600; height: 32px;" onchange="updateIdeaStatus('${item.id}', this.value)">
-                                    <option value="Used" selected>✅ Used (โพสต์แล้ว)</option>
-                                    <option value="Waiting List">⏳ Waiting List (ย้ายกลับไปรอโพสต์)</option>
-                                    <option value="Scheduled">📅 Scheduled (ย้ายไปตั้งเวลา)</option>
-                                    <option value="Interested">⭐ Interested (สนใจ)</option>
-                                    <option value="Later">📁 Later (ไว้ทีหลัง)</option>
-                                </select>
-                            </div>
-                            
-                            <span style="font-size: 11px; color: var(--text-muted);">กู้คืนกลับไป รอโพสต์ ได้หากต้องการโพสต์ใหม่</span>
-                        </div>
-                    </div>
-                `;
-            });
-            listContainer.innerHTML = html;
         }
 
         // Utilities helper

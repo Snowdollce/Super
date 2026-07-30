@@ -343,6 +343,25 @@ def upload_photo_to_facebook(page_id, access_token, img_data, caption, filename)
                 pass
         return False, f"Facebook Photo API error: {err_msg}"
 
+def get_post_payload(idea):
+    """
+    Returns (message, image_id) based on the post format selected.
+    Supported formats in idea.get("post_format"):
+      - 'with_image' (default or 'with_image')
+      - 'text_only'
+      - 'headline_only'
+    """
+    fmt = idea.get("post_format", "with_image")
+    if fmt == "headline_only":
+        message = idea.get("custom_headline", "").strip()
+        if not message:
+            message = idea.get("news_title", "").strip()
+        return message, ""
+    elif fmt == "text_only":
+        return idea.get("content", ""), ""
+    else:
+        return idea.get("content", ""), idea.get("selected_image_id", "")
+
 def publish_to_facebook(idea):
     config = load_config()
     page_id = config.get("FB_PAGE_ID", "").strip()
@@ -350,8 +369,7 @@ def publish_to_facebook(idea):
     if not page_id or not access_token:
         return False, "Facebook Page ID or Access Token is missing in configuration."
         
-    message = idea.get("content", "")
-    image_id = idea.get("selected_image_id", "")
+    message, image_id = get_post_payload(idea)
     
     if image_id:
         images = load_saved_images_list()
@@ -467,8 +485,7 @@ def schedule_to_facebook(idea, scheduled_time_str, timestamp=None):
         except Exception as e:
             return False, f"Invalid timestamp value: {e}"
         
-    message = idea.get("content", "")
-    image_id = idea.get("selected_image_id", "")
+    message, image_id = get_post_payload(idea)
     
     photo_id = None
     if image_id:
@@ -878,6 +895,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             scheduled_time = req_data.get("scheduled_time", "").strip()
             selected_image_id = req_data.get("selected_image_id", "").strip()
             timestamp = req_data.get("timestamp")
+            post_format = req_data.get("post_format", "with_image").strip()
+            custom_headline = req_data.get("custom_headline", "").strip()
             
             if not idea_id or not scheduled_time:
                 self.send_response(400)
@@ -900,6 +919,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                             
                     idea["scheduled_time"] = scheduled_time
                     idea["selected_image_id"] = selected_image_id
+                    idea["post_format"] = post_format
+                    idea["custom_headline"] = custom_headline
                     
                     fb_success, fb_res = schedule_to_facebook(idea, scheduled_time, timestamp=timestamp)
                     if fb_success:
@@ -976,6 +997,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/api/publish-now":
             idea_id = req_data.get("idea_id", "").strip()
             selected_image_id = req_data.get("selected_image_id", "").strip()
+            post_format = req_data.get("post_format", "with_image").strip()
+            custom_headline = req_data.get("custom_headline", "").strip()
             
             if not idea_id:
                 self.send_response(400)
@@ -991,6 +1014,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     target_idea = idea
                     if selected_image_id:
                         idea["selected_image_id"] = selected_image_id
+                    idea["post_format"] = post_format
+                    idea["custom_headline"] = custom_headline
                     break
                     
             if not target_idea:
@@ -1085,6 +1110,35 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         break
                 if success:
                     save_saved_ideas(ideas)
+                
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
+            return
+        elif self.path == "/api/update-idea-fields":
+            idea_id = req_data.get("idea_id", "").strip()
+            updates = req_data.get("updates", {})
+            
+            if not idea_id:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "idea_id is required"}).encode("utf-8"))
+                return
+                
+            success = False
+            ideas = load_saved_ideas()
+            for idea in ideas:
+                if idea["id"] == idea_id:
+                    for k, v in updates.items():
+                        idea[k] = v
+                    success = True
+                    if get_supabase_config():
+                        save_saved_ideas_supabase(idea)
+                    break
+            if success and not get_supabase_config():
+                save_saved_ideas(ideas)
                 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
